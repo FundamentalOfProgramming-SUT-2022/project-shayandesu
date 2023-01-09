@@ -9,3 +9,6 @@ available commands for now:
 • insertstr: Inserting a text in any arbitrary position inside a text file
 • cat: Showing Contents of a text file.
 • remove: Omitting a part of the text inside a text file.
+• copystr: Copying a part of a text file to clipboard.
+• cutstr: Cutting a part of a text file to clipboard.
+• pastestr: Pasting content that had been copied inside a file.
