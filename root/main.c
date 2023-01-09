@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+char* saver;
+
 //Creating a File
 void create()
 {
@@ -139,10 +141,8 @@ void insertstr()
             return;
         }
         printf("| %c", get);
-        if(get=='\n'){
-            printf("Incremented\n");
+        if(get=='\n')
             i++;
-        }
         //int a = ftell(fp);
         //printf(" %d |\n", a);
     }
@@ -212,6 +212,7 @@ void cat()
 //Removing a string
 void removestr()
 {
+    char* buffer = (char*)malloc(4000);
     char s[300];
     char c;
     scanf("%s", s);
@@ -235,7 +236,7 @@ void removestr()
         str = (char*)calloc(150, sizeof(char));
     }
 
-    printf("Address is: %s\n", address);
+    //printf("Address is: %s\n", address);
     FILE* fp = NULL;
     fp = fopen(address, "r");
     if(fp==NULL){
@@ -252,7 +253,7 @@ void removestr()
     int line, ch;
     long int len;
     scanf(" <%d:%d> ", &line, &ch);
-    printf("Line %d | Char %d\n", line, ch);
+    //printf("Line %d | Char %d\n", line, ch);
 
     scanf("%s", s);
     if(strcmp(s, "-size")){
@@ -261,7 +262,7 @@ void removestr()
         return;
     }
     scanf(" %ld ", &len);
-    printf("Size: %ld\n", len);
+    //printf("Size: %ld\n", len);
 
     scanf("%s", s);
     int i = 1, j = 1;
@@ -296,54 +297,404 @@ void removestr()
 
     if(!strcmp(s, "-f")){
 
-        long int start = here;
-        //printf("start point: %ld\n\n\n", start);
-        long int buf_size1 = start-2;
-        char* buffer1 = (char*)malloc(buf_size1);
-        buffer1[buf_size1] = '\0';
-        fseek(fp, 0L, SEEK_SET);
-        fread(buffer1, buf_size1, sizeof(char), fp);
-        //printf("Buffer1 is: %s\n\n\n\n", buffer1);
-
-        fseek(fp, len-1L, SEEK_CUR);
+        long int start = here + 1L;
+        fseek(fp, len, SEEK_CUR);
         long int end = ftell(fp);
-        fseek(fp, 0L, SEEK_END);
-        long int finish = ftell(fp);
-        long int buf_size2 = finish - end;
-        char* buffer2 = (char*)malloc(buf_size2);
-        fseek(fp, end, SEEK_SET);
-        fread(buffer2, buf_size2, 1, fp);
-        //printf("Buffer2 is :%s\n\n", buffer2);
+        fseek(fp, 0L, SEEK_SET);
+        char ch;
+        i = 0;
+
+        while(ch != EOF){
+            ch = fgetc(fp);
+            if( (ftell(fp) >= start) && (ftell(fp) <= end) )
+                continue;
+            buffer[i] = ch;
+            i++;
+        }
+
         fclose(fp);
         fp = fopen(address, "w+");
-        fputs(buffer1, fp);
-        fputs(buffer2, fp);
+        fputs(buffer, fp);
         fclose(fp);
+        free(buffer);
     }
     else if(!strcmp(s, "-b")){
-        long int end = here;
-        fseek(fp, -len+1L, SEEK_CUR);
+        long int end = here + 1;
+        fseek(fp, -len + 2, SEEK_CUR);
         long int start = ftell(fp);
-        fseek(fp, 0L, SEEK_END);
-        long int finish = ftell(fp);
-        long int buf_size1 = start-1;
-        char* buffer1 = (char*)malloc(buf_size1);
         fseek(fp, 0L, SEEK_SET);
-        fread(buffer1, buf_size1, sizeof(char), fp);
-        long int buf_size2 = finish - end;
-        char* buffer2 = (char*)malloc(buf_size2);
-        fseek(fp, end+1L, SEEK_SET);
-        fread(buffer2, buf_size2, 1, fp);
+        char ch;
+        i = 0;
+
+        while(ch != EOF){
+            ch = fgetc(fp);
+            if( (ftell(fp) >= start) && (ftell(fp) <= end) )
+                continue;
+            buffer[i] = ch;
+            i++;
+        }
+
         fclose(fp);
         fp = fopen(address, "w+");
-        fputs(buffer1, fp);
-        fputs(buffer2, fp);
+        fputs(buffer, fp);
         fclose(fp);
+        free(buffer);
     }
     else{
         printf("Invalid input.\n");
         return;
     }
+}
+
+//Copying text from a string
+void copystr()
+{
+    free(saver);
+    saver = (char*)malloc(1000);
+    char s[300];
+    char c;
+    scanf("%s", s);
+    if(strcmp(s, "--file")){
+        gets(s);
+        printf("Invalid input.\n");
+        return;
+    }
+    scanf("%c", &c);
+    char address[300] = "";
+    char *str= (char*)malloc(300);
+
+    while(1){
+        scanf("%s", str);
+        //printf("%s\n", str);
+        if(!strcmp(str, "--pos")){
+            //printf("SHIT\n");
+            break;}
+        strcat(address, str);
+        strcat(address, " ");
+        str = (char*)calloc(150, sizeof(char));
+    }
+
+    //printf("Address is: %s\n", address);
+    FILE* fp = NULL;
+    fp = fopen(address, "r");
+    if(fp==NULL){
+        printf("The directory you entered does not exist.\nTry creating it using <createfile> command.\n\n");
+        return;
+    }
+
+    strcpy(s, str);
+    if(strcmp(s, "--pos")){
+        gets(s);
+        printf("Invalid input.\n");
+        return;
+    }
+    int line, ch;
+    long int len;
+    scanf(" <%d:%d> ", &line, &ch);
+    //printf("Line %d | Char %d\n", line, ch);
+
+    scanf("%s", s);
+    if(strcmp(s, "-size")){
+        gets(s);
+        printf("Invalid input.\n");
+        return;
+    }
+    scanf(" %ld ", &len);
+    //printf("Size: %ld\n", len);
+
+    scanf("%s", s);
+    int i = 1, j = 1;
+    char get;
+
+    while(i < line){
+        get = fgetc(fp);
+        if(get==EOF){
+            printf("Invalid position.\n");
+            return;
+        }
+        //printf("| %c", get);
+        if(get=='\n'){
+            //printf("Incremented\n");
+            i++;
+        }
+        //int a = ftell(fp);
+        //printf(" %d |\n", a);
+    }
+
+    while(j < ch){
+        get = fgetc(fp);
+        if(get=='\n'){
+            printf("Invalid position.\n");
+            return;
+        }
+        //printf("%d %c | ", j, get);
+        j++;
+    }
+
+    //long int here = ftell(fp);
+
+    if(!strcmp(s, "-f")){
+        i = 0;
+
+        while(i < len){
+            c = fgetc(fp);
+            saver[i] = c;
+            i++;
+        }
+        saver[i] = '\0';
+    }
+    else if(!strcmp(s, "-b")){
+        fseek(fp, -len+1L, SEEK_CUR);
+        i = 0;
+
+        while(i <= len){
+            c = fgetc(fp);
+            saver[i] = c;
+            i++;
+        }
+        saver[i] = '\0';
+    }
+    else{
+        printf("Invalid input.\n");
+        return;
+    }
+}
+
+//Cutting a text inside a file
+void cutstr()
+{
+    free(saver);
+    saver = (char*)malloc(1000);
+    char* buffer = (char*)malloc(4000);
+    char s[300];
+    char c;
+    scanf("%s", s);
+    if(strcmp(s, "--file")){
+        gets(s);
+        printf("Invalid input.\n");
+        return;
+    }
+    scanf("%c", &c);
+    char address[300] = "";
+    char *str= (char*)malloc(300);
+
+    while(1){
+        scanf("%s", str);
+        //printf("%s\n", str);
+        if(!strcmp(str, "--pos")){
+            //printf("SHIT\n");
+            break;}
+        strcat(address, str);
+        strcat(address, " ");
+        str = (char*)calloc(150, sizeof(char));
+    }
+
+    //printf("Address is: %s\n", address);
+    FILE* fp = NULL;
+    fp = fopen(address, "r");
+    if(fp==NULL){
+        printf("The directory you entered does not exist.\nTry creating it using <createfile> command.\n\n");
+        return;
+    }
+
+    strcpy(s, str);
+    if(strcmp(s, "--pos")){
+        gets(s);
+        printf("Invalid input.\n");
+        return;
+    }
+    int line, ch;
+    long int len;
+    scanf(" <%d:%d> ", &line, &ch);
+    //printf("Line %d | Char %d\n", line, ch);
+
+    scanf("%s", s);
+    if(strcmp(s, "-size")){
+        gets(s);
+        printf("Invalid input.\n");
+        return;
+    }
+    scanf(" %ld ", &len);
+    //printf("Size: %ld\n", len);
+
+    scanf("%s", s);
+    int i = 1, j = 1;
+    char get;
+
+    while(i < line){
+        get = fgetc(fp);
+        if(get==EOF){
+            printf("Invalid position.\n");
+            return;
+        }
+        //printf("| %c", get);
+        if(get=='\n'){
+            //printf("Incremented\n");
+            i++;
+        }
+        //int a = ftell(fp);
+        //printf(" %d |\n", a);
+    }
+
+    while(j < ch){
+        get = fgetc(fp);
+        if(get=='\n'){
+            printf("Invalid position.\n");
+            return;
+        }
+        //printf("%d %c | ", j, get);
+        j++;
+    }
+
+    long int here = ftell(fp);
+
+    if(!strcmp(s, "-f")){
+        long int start = here + 1L;
+        fseek(fp, len, SEEK_CUR);
+        long int end = ftell(fp);
+        fseek(fp, 0L, SEEK_SET);
+        char ch;
+        i = 0;
+        j = 0;
+
+        while(ch != EOF){
+            ch = fgetc(fp);
+            if( (ftell(fp) >= start) && (ftell(fp) <= end) ){
+                saver[j] = ch;
+                j++;
+                continue;
+                }
+            buffer[i] = ch;
+            i++;
+        }
+
+        saver[j] = '\0';
+        fclose(fp);
+        fp = fopen(address, "w+");
+        fputs(buffer, fp);
+        fclose(fp);
+        free(buffer);
+    }
+    else if(!strcmp(s, "-b")){
+        long int end = here + 1;
+        fseek(fp, -len + 2, SEEK_CUR);
+        long int start = ftell(fp);
+        fseek(fp, 0L, SEEK_SET);
+        char ch;
+        i = 0;
+        j = 0;
+
+        while(ch != EOF){
+            ch = fgetc(fp);
+            if( (ftell(fp) >= start) && (ftell(fp) <= end) ){
+                saver[j] = ch;
+                j++;
+                continue;
+                }
+            buffer[i] = ch;
+            i++;
+        }
+
+        saver[j] = '\0';
+        fclose(fp);
+        fp = fopen(address, "w+");
+        fputs(buffer, fp);
+        fclose(fp);
+        free(buffer);
+    }
+    else{
+        printf("Invalid input.\n");
+        return;
+    }
+}
+
+//Pasting text
+void pastestr()
+{
+    char *str, *s, *address;
+    address = (char*)calloc(500, sizeof(char));
+    str = (char*)calloc(150, sizeof(char));
+    s = (char*)calloc(150, sizeof(char));
+
+    scanf("%s", s);
+    //printf("%s\n", s);
+    if(strcasecmp(s, "--file")){
+        gets(s);
+        printf("Invalid input.\n");
+        return;
+    }
+
+    while(1){
+        scanf("%s", str);
+        //printf("%s\n", str);
+        if(!strcmp(str, "--pos")){
+            //printf("SHIT\n");
+            break;}
+        strcat(address, str);
+        strcat(address, " ");
+        str = (char*)calloc(150, sizeof(char));
+    }
+
+
+    FILE* fp = NULL;
+    fp = fopen(address, "r+");
+    if(fp==NULL){
+        gets(str);
+        printf("The directory you entered does not exist.\nTry creating it using <createfile> command.\n\n");
+    }
+
+    //printf("\n\n==== 3 =====\n\n");
+
+    if(strcasecmp(str, "--pos")){
+        gets(str);
+        printf("Invalid input.\n");
+        return;
+    }
+
+    char get;
+    int line, ch, i = 1,j = 1;
+    scanf(" <%d:%d>", &line, &ch);
+
+    //printf("Line: %d | Character: %d\n", line, ch);
+
+    while(i < line){
+        get = fgetc(fp);
+        if(get==EOF){
+            printf("Invalid position.\n");
+            return;
+        }
+        //printf("| %c", get);
+        if(get=='\n')
+            i++;
+        //int a = ftell(fp);
+        //printf(" %d |\n", a);
+    }
+
+    while(j < ch){
+        get = fgetc(fp);
+        if(get=='\n'){
+            printf("Invalid position.\n");
+            return;
+        }
+        //printf("%c | ", get);
+        j++;
+    }
+
+
+    long int here = ftell(fp);
+    fseek(fp, 0L, SEEK_END);
+    long int end = ftell(fp);
+
+    long int buf_size = end - here;
+    fseek(fp, here, SEEK_SET);
+    char* buffer = (char*)calloc(buf_size, sizeof(char));
+    fread(buffer, 1, buf_size, fp);
+    fseek(fp, here, SEEK_SET);
+
+    fputs(saver, fp);
+    fputs(buffer, fp);
+
+    fclose(fp);
 }
 
 int main()
@@ -362,6 +713,12 @@ int main()
             cat();
         else if(!strcmp(str, "remove"))
             removestr();
+        else if(!strcmp(str, "copystr"))
+            copystr();
+        else if(!strcmp(str, "cutstr"))
+            cutstr();
+        else if(!strcmp(str, "pastestr"))
+            pastestr();
         else if(!strcmp(str, "exit"))
             return 0;
         else{
@@ -370,3 +727,4 @@ int main()
         }
     }
 }
+
