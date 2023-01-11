@@ -90,8 +90,6 @@ void insertstr()
         printf("The directory you entered does not exist.\nTry creating it using <createfile> command.\n\n");
     }
 
-    //printf("\n\n==== 3 =====\n\n");
-
     if(strcasecmp(str, "--str")){
         gets(str);
         printf("Invalid input.\n");
@@ -101,32 +99,40 @@ void insertstr()
     char* text = (char*)calloc(500, sizeof(char));
     free(str);
 
-    //printf("\n\n==== 4 =====\n\n");
-
     while(1){
         scanf("%s", str);
         //printf("%s\n", str);
-        if(!strcmp(str, "--pos")){
-            //printf("SHIT\n");
+        if(!strcmp(str, "--pos"))
             break;
-        }
         strcat(text, str);
         strcat(text, " ");
-        //printf("SHIIIIIT\n");
         //str = (char*)calloc(150, sizeof(char));
     }
 
     //printf("Desired text: %s\n", text);
 
-    int len = strlen(text);
+    int len = strlen(text), m = 0, n = 0;
+    char* text_ = (char*)malloc(len);
 
-    for(int i = 0; i < len-1; i++){
-        if( (text[i]=='\\') && (text[i+1]=='n') ){
-            text[i] = ' ';
-            text[i+1] = '\n';
+    while(m<len){
+        if( (text[m]=='\\') && (text[m+1]=='n') ){
+            text_[n] = '\n';
+            n++;
+            m += 2;
+            continue;
         }
+        if( (text[m]=='\\') && (text[m+1]=='\\')){
+            text_[n] = '\\';
+            n++;
+            m += 2;
+            continue;
+        }
+        text_[n] = text[m];
+        n++;
+        m++;
     }
 
+    strcpy(text, text_);
     char get;
     int line, ch, i = 1,j = 1;
     scanf(" <%d:%d>", &line, &ch);
@@ -627,9 +633,8 @@ void pastestr()
     while(1){
         scanf("%s", str);
         //printf("%s\n", str);
-        if(!strcmp(str, "--pos")){
-            //printf("SHIT\n");
-            break;}
+        if(!strcmp(str, "--pos"))
+            break;
         strcat(address, str);
         strcat(address, " ");
         str = (char*)calloc(150, sizeof(char));
@@ -642,8 +647,6 @@ void pastestr()
         gets(str);
         printf("The directory you entered does not exist.\nTry creating it using <createfile> command.\n\n");
     }
-
-    //printf("\n\n==== 3 =====\n\n");
 
     if(strcasecmp(str, "--pos")){
         gets(str);
@@ -697,6 +700,432 @@ void pastestr()
     fclose(fp);
 }
 
+//Finding the number of occurrence of a text inside a file
+void find_count()
+{
+    char c;
+    char *str, *s, *address;
+    address = (char*)calloc(500, sizeof(char));
+    str = (char*)calloc(150, sizeof(char));
+    s = (char*)calloc(150, sizeof(char));
+
+    scanf("%s", s);
+    if(strcasecmp(s, "--file")){
+        gets(s);
+        printf("Invalid input.\n");
+        return;
+    }
+
+    while(1){
+        scanf("%s", str);
+        //printf("%s\n", str);
+        if(!strcmp(str, "--str"))
+            break;
+        strcat(address, str);
+        strcat(address, " ");
+        str = (char*)calloc(150, sizeof(char));
+    }
+
+    FILE* fp = NULL;
+    fp = fopen(address, "r+");
+    if(fp==NULL){
+        gets(str);
+        printf("The directory you entered does not exist.\nTry creating it using <createfile> command.\n\n");
+    }
+    if(strcasecmp(str, "--str")){
+        gets(str);
+        printf("Invalid input.\n");
+        return;
+    }
+    scanf("%c", &c);
+    char* text = (char*)calloc(500, sizeof(char));
+    free(str);
+    gets(text);
+    long int len = strlen(text);
+    char* buffer = (char*)malloc(len);
+    fseek(fp, -len, SEEK_END);
+    long int end = ftell(fp);
+    int counter = 0;
+    int leng = strlen(text), j = 0, i = 0;
+    char* text_ = (char*)malloc(len);
+
+    while(i<leng){
+        if( (text[i]=='\\') && (text[i+1]=='n') ){
+            text_[j] = '\n';
+            j++;
+            i += 2;
+            continue;
+        }
+        if( (text[i]=='\\') && (text[i+1]=='\\')){
+            text_[j] = '\\';
+            j++;
+            i += 2;
+            continue;
+        }
+        if( (text[i]=='\\') && (text[i+1]=='*')){
+            text_[j] = '*';
+            j++;
+            i += 2;
+        }
+        text_[j] = text[i];
+        j++;
+        i++;
+    }
+    text_[j] = '\0';
+    strcpy(text, text_);
+    printf("Text is: |%s|\nText_ is: %s\n", text, text_);
+    for(long int i = 0; i < end; i++){
+        int j = 0, id = 0;
+        fseek(fp, i, SEEK_SET);
+        for(j = 0; j < len; j++){
+            c = fgetc(fp);
+            if(c==EOF){
+                id = 1;
+                break;
+            }
+            buffer[j] = c;
+        }
+        buffer[j] = '\0';
+        if(id==1)
+            break;
+        printf("|%s|\n", buffer);
+        if(!strcmp(buffer, text))
+            counter++;
+    }
+    printf("Total number of recurrence: %d\n", counter);
+}
+
+//Finding the nth recurrence
+void find_at()
+{
+    char c;
+    char *str, *s, *address;
+    address = (char*)calloc(500, sizeof(char));
+    str = (char*)calloc(150, sizeof(char));
+    s = (char*)calloc(150, sizeof(char));
+    int num = 0;
+    scanf("%d", &num);
+    scanf("%c", &c);
+    scanf("%s", s);
+    if(strcasecmp(s, "--file")){
+        gets(s);
+        printf("Invalid input.\n");
+        return;
+    }
+
+    while(1){
+        scanf("%s", str);
+        //printf("%s\n", str);
+        if(!strcmp(str, "--str"))
+            break;
+        strcat(address, str);
+        strcat(address, " ");
+        str = (char*)calloc(150, sizeof(char));
+    }
+
+    FILE* fp = NULL;
+    fp = fopen(address, "r+");
+    if(fp==NULL){
+        gets(str);
+        printf("The directory you entered does not exist.\nTry creating it using <createfile> command.\n\n");
+    }
+    if(strcasecmp(str, "--str")){
+        gets(str);
+        printf("Invalid input.\n");
+        return;
+    }
+    scanf("%c", &c);
+    char* text = (char*)calloc(500, sizeof(char));
+    free(str);
+    gets(text);
+    long int len = strlen(text);
+    char* buffer = (char*)malloc(len);
+    fseek(fp, -len, SEEK_END);
+    long int end = ftell(fp);
+    int counter = 0;
+    int leng = strlen(text), j = 0, i = 0;
+    char* text_ = (char*)malloc(len);
+
+    while(i<leng){
+        if( (text[i]=='\\') && (text[i+1]=='n') ){
+            text_[j] = '\n';
+            j++;
+            i += 2;
+            continue;
+        }
+        if( (text[i]=='\\') && (text[i+1]=='\\')){
+            text_[j] = '\\';
+            j++;
+            i += 2;
+            continue;
+        }
+        if( (text[i]=='\\') && (text[i+1]=='*')){
+            text_[j] = '*';
+            j++;
+            i += 2;
+        }
+        text_[j] = text[i];
+        j++;
+        i++;
+    }
+    text_[j] = '\0';
+    strcpy(text, text_);
+    //printf("Text is: |%s|\nText_ is: %s\n", text, text_);
+    for(long int i = 0; i < end; i++){
+        int j = 0, id = 0;
+        fseek(fp, i, SEEK_SET);
+        for(j = 0; j < len; j++){
+            c = fgetc(fp);
+            if(c==EOF){
+                id = 1;
+                break;
+            }
+            buffer[j] = c;
+        }
+        buffer[j] = '\0';
+        if(id==1)
+            break;
+        printf("|%s|\n", buffer);
+        if(!strcmp(buffer, text))
+            counter++;
+        if(counter == num){
+            printf("The %dth time of recurrence is at character: %ld\n", num, i+1);
+            return;
+        }
+    }
+    printf("The %dth time of recurrence is at character: -1 (There are not this many recurrences in this text.)\n", num);
+}
+
+//Finding recurrence by word
+void find_byword()
+{
+    char c;
+    char *str, *s, *address;
+    address = (char*)calloc(500, sizeof(char));
+    str = (char*)calloc(150, sizeof(char));
+    s = (char*)calloc(150, sizeof(char));
+    int word_counter = 0;
+    scanf("%s", s);
+
+    if(strcasecmp(s, "--file")){
+        gets(s);
+        printf("Invalid input.\n");
+        return;
+    }
+
+    while(1){
+        scanf("%s", str);
+        //printf("%s\n", str);
+        if(!strcmp(str, "--str"))
+            break;
+        strcat(address, str);
+        strcat(address, " ");
+        str = (char*)calloc(150, sizeof(char));
+    }
+
+
+    FILE* fp = NULL;
+    fp = fopen(address, "r+");
+    if(fp==NULL){
+        gets(str);
+        printf("The directory you entered does not exist.\nTry creating it using <createfile> command.\n\n");
+    }
+
+    if(strcasecmp(str, "--str")){
+        gets(str);
+        printf("Invalid input.\n");
+        return;
+    }
+
+    scanf("%c", &c);
+    char* text = (char*)calloc(500, sizeof(char));
+    free(str);
+    gets(text);
+    long int len = strlen(text);
+    char* buffer = (char*)malloc(len);
+    fseek(fp, 0L, SEEK_END);
+    long int end = ftell(fp);
+
+    for(long int i = 0; i < end; i++){
+        int j = 0;
+        c = fgetc(fp);
+        if(c==' ' || c=='\n')
+            word_counter++;
+        fseek(fp, i, SEEK_SET);
+        for(j = 0; j < len; j++){
+            c = fgetc(fp);
+            buffer[j] = c;
+        }
+        buffer[j] = '\0';
+        //printf("|%s|\n", buffer);
+        if(!strcmp(buffer, text)){
+            printf("Location by word: %d\n", word_counter+1);
+            free(text);
+            free(buffer);
+            return;
+        }
+    }
+    printf("Not found.\n");
+}
+
+//Returning all recurrences
+void find_all()
+{
+    char c;
+    char *str, *s, *address;
+    address = (char*)calloc(500, sizeof(char));
+    str = (char*)calloc(150, sizeof(char));
+    s = (char*)calloc(150, sizeof(char));
+    int word_counter = 0;
+    scanf("%s", s);
+
+    if(strcasecmp(s, "--file")){
+        gets(s);
+        printf("Invalid input.\n");
+        return;
+    }
+
+    while(1){
+        scanf("%s", str);
+        //printf("%s\n", str);
+        if(!strcmp(str, "--str"))
+            break;
+        strcat(address, str);
+        strcat(address, " ");
+        str = (char*)calloc(150, sizeof(char));
+    }
+
+
+    FILE* fp = NULL;
+    fp = fopen(address, "r+");
+    if(fp==NULL){
+        gets(str);
+        printf("The directory you entered does not exist.\nTry creating it using <createfile> command.\n\n");
+    }
+
+    if(strcasecmp(str, "--str")){
+        gets(str);
+        printf("Invalid input.\n");
+        return;
+    }
+    int checker = 0;
+    scanf("%c", &c);
+    char* text = (char*)calloc(500, sizeof(char));
+    free(str);
+    gets(text);
+    long int len = strlen(text);
+    char* buffer = (char*)malloc(len);
+    fseek(fp, 0L, SEEK_END);
+    long int end = ftell(fp);
+
+    for(long int i = 0; i < end; i++){
+        int j = 0;
+        c = fgetc(fp);
+        if(c==' ' || c=='\n'){
+            word_counter++;
+            //printf("%ld\n", ftell(fp));
+        }
+        fseek(fp, i, SEEK_SET);
+        for(j = 0; j < len; j++){
+            c = fgetc(fp);
+            buffer[j] = c;
+        }
+        buffer[j] = '\0';
+        //printf("|%s|\n", buffer);
+        if(!strcmp(buffer, text)){
+            checker = 1;
+            printf("%d ", word_counter+1);
+        }
+    }
+    if(checker == 0)
+        printf("Not found");
+    printf("\n");
+}
+
+//Finding location of a certain text inside a file
+void findstr()
+{
+    char c;
+    char *str, *s, *address;
+    address = (char*)calloc(500, sizeof(char));
+    str = (char*)calloc(150, sizeof(char));
+    s = (char*)calloc(150, sizeof(char));
+
+    scanf("%s", s);
+    if(!strcmp(s, "-count")){
+        find_count();
+        return;
+    }
+    if(!strcmp(s, "-at")){
+        find_at();
+        return;
+    }
+    if(!strcmp(s, "-byword")){
+        find_byword();
+        return;
+    }
+    if(!strcmp(s, "-all")){
+        find_all();
+        return;
+    }
+
+    if(strcasecmp(s, "--file")){
+        gets(s);
+        printf("Invalid input.\n");
+        return;
+    }
+
+    while(1){
+        scanf("%s", str);
+        //printf("%s\n", str);
+        if(!strcmp(str, "--str"))
+            break;
+        strcat(address, str);
+        strcat(address, " ");
+        str = (char*)calloc(150, sizeof(char));
+    }
+
+
+    FILE* fp = NULL;
+    fp = fopen(address, "r+");
+    if(fp==NULL){
+        gets(str);
+        printf("The directory you entered does not exist.\nTry creating it using <createfile> command.\n\n");
+    }
+
+    if(strcasecmp(str, "--str")){
+        gets(str);
+        printf("Invalid input.\n");
+        return;
+    }
+
+    scanf("%c", &c);
+    char* text = (char*)calloc(500, sizeof(char));
+    free(str);
+    gets(text);
+    long int len = strlen(text);
+    char* buffer = (char*)malloc(len);
+    fseek(fp, 0L, SEEK_END);
+    long int end = ftell(fp);
+
+    for(long int i = 0; i < end; i++){
+        int j = 0;
+        fseek(fp, i, SEEK_SET);
+        for(j = 0; j < len; j++){
+            c = fgetc(fp);
+            buffer[j] = c;
+        }
+        buffer[j] = '\0';
+        if(!strcmp(buffer, text)){
+            printf("Location: %ld\n", i+1);
+            free(text);
+            free(buffer);
+            return;
+        }
+    }
+    printf("Not found.\n");
+}
+
 int main()
 {
     char* str = (char*)calloc(150, sizeof(char));
@@ -719,6 +1148,8 @@ int main()
             cutstr();
         else if(!strcmp(str, "pastestr"))
             pastestr();
+        else if(!strcmp(str, "find"))
+            findstr();
         else if(!strcmp(str, "exit"))
             return 0;
         else{
