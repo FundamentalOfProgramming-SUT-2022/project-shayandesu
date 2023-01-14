@@ -1341,7 +1341,7 @@ void replace_all()
     scanf("%c", &c);
     gets(text2);
     long int len = strlen(text1);
-    char* buffer = (char*)malloc(len), *saver = (char*)calloc(10000, sizeof(char)), *save;
+    char* buffer = (char*)malloc(len), *saver_ = (char*)calloc(10000, sizeof(char)), *save;
     fseek(fp, 0L, SEEK_END);
     long int end = ftell(fp);
     long int starttext = 0;
@@ -1370,9 +1370,9 @@ void replace_all()
             for(k = 0; k < length; k++)
                 save[k] = fgetc(fp);
             save[k] = '\0';
-            strcat(saver, save);
-            strcat(saver, text2);
-            printf("\n\n\nSave: |%s|\n\n\n", save);
+            strcat(saver_, save);
+            strcat(saver_, text2);
+            //printf("\n\n\nSave: |%s|\n\n\n", save);
             starttext = i+j;
             free(save);
         }
@@ -1381,11 +1381,11 @@ void replace_all()
     save = (char*)malloc(length);
     fseek(fp, starttext, SEEK_SET);
     fread(save, 1, length, fp);
-    strcat(saver, save);
+    strcat(saver_, save);
     fclose(fp);
 
     fp = fopen(address, "w+");
-    fputs(saver, fp);
+    fputs(saver_, fp);
     fclose(fp);
 }
 
