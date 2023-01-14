@@ -146,7 +146,7 @@ void insertstr()
             printf("Invalid position.\n");
             return;
         }
-        printf("| %c", get);
+        //printf("| %c", get);
         if(get=='\n')
             i++;
         //int a = ftell(fp);
@@ -172,7 +172,7 @@ void insertstr()
     fseek(fp, here, SEEK_SET);
     char* buffer = (char*)calloc(buf_size, sizeof(char));
     fread(buffer, 1, buf_size, fp);
-    printf("buffer: %s\n", buffer);
+    //printf("buffer: %s\n", buffer);
     fseek(fp, here, SEEK_SET);
 
     fputs(text, fp);
@@ -885,7 +885,7 @@ void find_at()
         buffer[j] = '\0';
         if(id==1)
             break;
-        printf("|%s|\n", buffer);
+        //printf("|%s|\n", buffer);
         if(!strcmp(buffer, text))
             counter++;
         if(counter == num){
@@ -945,6 +945,7 @@ void find_byword()
     char* buffer = (char*)malloc(len);
     fseek(fp, 0L, SEEK_END);
     long int end = ftell(fp);
+    int id = 0;
 
     for(long int i = 0; i < end; i++){
         int j = 0;
@@ -954,9 +955,15 @@ void find_byword()
         fseek(fp, i, SEEK_SET);
         for(j = 0; j < len; j++){
             c = fgetc(fp);
+            if(c==EOF){
+                id = 1;
+                break;
+            }
             buffer[j] = c;
         }
         buffer[j] = '\0';
+        if(id==1)
+            break;
         //printf("|%s|\n", buffer);
         if(!strcmp(buffer, text)){
             printf("Location by word: %d\n", word_counter+1);
@@ -1017,6 +1024,7 @@ void find_all()
     char* buffer = (char*)malloc(len);
     fseek(fp, 0L, SEEK_END);
     long int end = ftell(fp);
+    int id = 0;
 
     for(long int i = 0; i < end; i++){
         int j = 0;
@@ -1028,9 +1036,15 @@ void find_all()
         fseek(fp, i, SEEK_SET);
         for(j = 0; j < len; j++){
             c = fgetc(fp);
+            if(c==EOF){
+                id = 1;
+                break;
+            }
             buffer[j] = c;
         }
         buffer[j] = '\0';
+        if(id==1)
+            break;
         //printf("|%s|\n", buffer);
         if(!strcmp(buffer, text)){
             checker = 1;
@@ -1107,6 +1121,356 @@ void findstr()
     char* buffer = (char*)malloc(len);
     fseek(fp, 0L, SEEK_END);
     long int end = ftell(fp);
+    int id = 0;
+
+    for(long int i = 0; i < end; i++){
+        int j = 0;
+        fseek(fp, i, SEEK_SET);
+        for(j = 0; j < len; j++){
+            c = fgetc(fp);
+            if(c==EOF){
+                id = 1;
+                break;
+            }
+            buffer[j] = c;
+        }
+        buffer[j] = '\0';
+        if(id==1)
+            break;
+        if(!strcmp(buffer, text)){
+            printf("Location: %ld\n", i+1);
+            free(text);
+            free(buffer);
+            return;
+        }
+    }
+    printf("Not found.\n");
+}
+
+//Replace at a particular recurrence
+void replace_at()
+{
+    char c;
+    char *str, *s, *address;
+    address = (char*)calloc(500, sizeof(char));
+    str = (char*)calloc(150, sizeof(char));
+    s = (char*)calloc(150, sizeof(char));
+    int num;
+    scanf("%d", &num);
+    scanf("%c", &c);
+    scanf("%s", s);
+    if(strcasecmp(s, "--file")){
+        gets(s);
+        printf("Invalid input.\n");
+        return;
+    }
+
+     while(1){
+        scanf("%s", str);
+        //printf("%s\n", str);
+        if(!strcmp(str, "--str1"))
+            break;
+        strcat(address, str);
+        strcat(address, " ");
+        str = (char*)calloc(150, sizeof(char));
+    }
+    FILE* fp = NULL;
+    fp = fopen(address, "rb+");
+    if(fp==NULL){
+        gets(str);
+        printf("The directory you entered does not exist.\nTry creating it using <createfile> command.\n\n");
+    }
+
+    if(strcasecmp(str, "--str1")){
+        gets(str);
+        printf("Invalid input.\n");
+        return;
+    }
+    char* text1 = (char*)calloc(1000, sizeof(char));
+    char* text2 = (char*)malloc(1000);
+    char* text1tmp = (char*)malloc(100);
+
+    scanf("%c", &c);
+
+    while(1){
+        scanf("%c", &c);
+        if(c==' '){
+            scanf("%s", text1tmp);
+            printf("%s\n", text1tmp);
+            if(!strcmp(text1tmp, "--str2"))
+                break;
+            else{
+            strcat(text1, " ");
+            strcat(text1, text1tmp);
+            continue;
+            }
+        }
+        strncat(text1, &c, 1);
+        printf("Text: %s\n", text1);
+    }
+
+    if(strcasecmp(text1tmp, "--str2")){
+        gets(str);
+        printf("Invalid input.\n");
+        return;
+    }
+    scanf("%c", &c);
+    gets(text2);
+    long int len = strlen(text1);
+    char* buffer = (char*)malloc(len);
+    fseek(fp, 0L, SEEK_END);
+    long int end = ftell(fp);
+    long int endtext = -1;
+    int counter = 0;
+    int id = 0;
+
+    for(long int i = 0; i < end; i++){
+        int k = 0;
+        fseek(fp, i, SEEK_SET);
+        for(k = 0; k < len; k++){
+            c = fgetc(fp);
+            if(c==EOF){
+                id = 1;
+                break;
+            }
+            buffer[k] = c;
+        }
+        buffer[k] = '\0';
+        if(id==1)
+            break;
+        if(!strcmp(buffer, text1))
+          counter++;
+        if(counter == num){
+            endtext = ftell(fp);
+            break;
+        }
+    }
+    printf("Text1 is: |%s|\n", text1);
+    printf("Text2 is: |%s|\n", text2);
+    printf("End of text: %ld \n", endtext);
+    if(endtext== -1){
+        printf("Not found.\n");
+        return;
+    }
+    long int starttext = endtext - len;
+    char buffer1[starttext], buffer2[5000];
+    fseek(fp, 0L, SEEK_SET);
+    long int i = 0;
+    fread(buffer1, 1, starttext, fp);
+    fseek(fp, endtext, SEEK_SET);
+    for(i = 0; i < end; i++)
+        buffer2[i] = fgetc(fp);
+    buffer2[i] = '\0';
+    fclose(fp);
+
+    printf("starttext is: %ld\n", starttext);
+    printf("First buffer: %s\nSecond buffer; %s\n", buffer1, buffer2);
+    fp = fopen(address, "w+");
+    fputs(buffer1, fp);
+    fputs(text2, fp);
+    fputs(buffer2, fp);
+    fclose(fp);
+}
+
+//Replacing all recurrences
+void replace_all()
+{
+    char c;
+    char *str, *s, *address;
+    address = (char*)calloc(500, sizeof(char));
+    str = (char*)calloc(150, sizeof(char));
+    s = (char*)calloc(150, sizeof(char));
+
+     scanf("%c", &c);
+    scanf("%s", s);
+    if(strcasecmp(s, "--file")){
+        gets(s);
+        printf("Invalid input.\n");
+        return;
+    }
+
+     while(1){
+        scanf("%s", str);
+        //printf("%s\n", str);
+        if(!strcmp(str, "--str1"))
+            break;
+        strcat(address, str);
+        strcat(address, " ");
+        str = (char*)calloc(150, sizeof(char));
+    }
+    FILE* fp = NULL;
+    fp = fopen(address, "rb+");
+    if(fp==NULL){
+        gets(str);
+        printf("The directory you entered does not exist.\nTry creating it using <createfile> command.\n\n");
+    }
+
+    if(strcasecmp(str, "--str1")){
+        gets(str);
+        printf("Invalid input.\n");
+        return;
+    }
+    char* text1 = (char*)calloc(1000, sizeof(char));
+    char* text2 = (char*)malloc(1000);
+    char* text1tmp = (char*)malloc(100);
+
+    scanf("%c", &c);
+
+    while(1){
+        scanf("%c", &c);
+        if(c==' '){
+            scanf("%s", text1tmp);
+            printf("%s\n", text1tmp);
+            if(!strcmp(text1tmp, "--str2"))
+                break;
+            else{
+            strcat(text1, " ");
+            strcat(text1, text1tmp);
+            continue;
+            }
+        }
+        strncat(text1, &c, 1);
+        printf("Text: %s\n", text1);
+    }
+
+    if(strcasecmp(text1tmp, "--str2")){
+        gets(str);
+        printf("Invalid input.\n");
+        return;
+    }
+    scanf("%c", &c);
+    gets(text2);
+    long int len = strlen(text1);
+    char* buffer = (char*)malloc(len), *saver = (char*)calloc(10000, sizeof(char)), *save;
+    fseek(fp, 0L, SEEK_END);
+    long int end = ftell(fp);
+    long int starttext = 0;
+    int id = 0;
+
+    for(long int i = 0; i < end; i++){
+        int j = 0;
+        fseek(fp, i, SEEK_SET);
+        for(j = 0; j < len; j++){
+            c = fgetc(fp);
+            if(c == EOF){
+                id = 1;
+                break;
+            }
+            buffer[j] = c;
+        }
+        buffer[j] = '\0';
+        if(id==1)
+            break;
+        if(!strcmp(buffer, text1)){
+            long int length = i - starttext;
+            fseek(fp, starttext, SEEK_SET);
+            save = (char*)malloc(length);
+            //fread(save, 1, length, fp);
+            long int k;
+            for(k = 0; k < length; k++)
+                save[k] = fgetc(fp);
+            save[k] = '\0';
+            strcat(saver, save);
+            strcat(saver, text2);
+            printf("\n\n\nSave: |%s|\n\n\n", save);
+            starttext = i+j;
+            free(save);
+        }
+    }
+    long int length = end - starttext;
+    save = (char*)malloc(length);
+    fseek(fp, starttext, SEEK_SET);
+    fread(save, 1, length, fp);
+    strcat(saver, save);
+    fclose(fp);
+
+    fp = fopen(address, "w+");
+    fputs(saver, fp);
+    fclose(fp);
+}
+
+//Replacing a text inside a file
+void replace()
+{
+    char c;
+    char *str, *s, *address;
+    address = (char*)calloc(500, sizeof(char));
+    str = (char*)calloc(150, sizeof(char));
+    s = (char*)calloc(150, sizeof(char));
+
+    scanf("%s", s);
+    if(!strcmp(s, "-all")){
+        replace_all();
+        return;
+    }
+    if(!strcmp(s, "-at")){
+        replace_at();
+        return;
+    }
+    if(strcasecmp(s, "--file")){
+        gets(s);
+        printf("Invalid input.\n");
+        return;
+    }
+
+     while(1){
+        scanf("%s", str);
+        //printf("%s\n", str);
+        if(!strcmp(str, "--str1"))
+            break;
+        strcat(address, str);
+        strcat(address, " ");
+        str = (char*)calloc(150, sizeof(char));
+    }
+
+
+    FILE* fp = NULL;
+    fp = fopen(address, "rb+");
+    if(fp==NULL){
+        gets(str);
+        printf("The directory you entered does not exist.\nTry creating it using <createfile> command.\n\n");
+    }
+
+    if(strcasecmp(str, "--str1")){
+        gets(str);
+        printf("Invalid input.\n");
+        return;
+    }
+    char* text1 = (char*)calloc(1000, sizeof(char));
+    char* text2 = (char*)malloc(1000);
+    char* text1tmp = (char*)malloc(100);
+
+    scanf("%c", &c);
+
+    while(1){
+        scanf("%c", &c);
+        if(c==' '){
+            scanf("%s", text1tmp);
+            printf("%s\n", text1tmp);
+            if(!strcmp(text1tmp, "--str2"))
+                break;
+            else{
+            strcat(text1, " ");
+            strcat(text1, text1tmp);
+            continue;
+            }
+        }
+        strncat(text1, &c, 1);
+        printf("Text: %s\n", text1);
+    }
+
+    if(strcasecmp(text1tmp, "--str2")){
+        gets(str);
+        printf("Invalid input.\n");
+        return;
+    }
+    scanf("%c", &c);
+    gets(text2);
+    long int len = strlen(text1);
+    char* buffer = (char*)malloc(len);
+    fseek(fp, 0L, SEEK_END);
+    long int end = ftell(fp);
+    long int endtext = -1;
 
     for(long int i = 0; i < end; i++){
         int j = 0;
@@ -1116,14 +1480,36 @@ void findstr()
             buffer[j] = c;
         }
         buffer[j] = '\0';
-        if(!strcmp(buffer, text)){
-            printf("Location: %ld\n", i+1);
-            free(text);
-            free(buffer);
-            return;
+        if(!strcmp(buffer, text1)){
+          endtext = ftell(fp);
+          break;
         }
     }
-    printf("Not found.\n");
+    printf("Text1 is: |%s|\n", text1);
+    printf("Text2 is: |%s|\n", text2);
+    printf("End of text: %ld \n", endtext);
+    if(endtext== -1){
+        printf("Not found.\n");
+        return;
+    }
+    long int starttext = endtext - len;
+    char buffer1[starttext], buffer2[5000];
+    fseek(fp, 0L, SEEK_SET);
+    long int i = 0;
+    fread(buffer1, 1, starttext, fp);
+    fseek(fp, endtext, SEEK_SET);
+    for(i = 0; i < end; i++)
+        buffer2[i] = fgetc(fp);
+    buffer2[i] = '\0';
+    fclose(fp);
+
+    printf("starttext is: %ld\n", starttext);
+    printf("First buffer: %s\nSecond buffer; %s\n", buffer1, buffer2);
+    fp = fopen(address, "w+");
+    fputs(buffer1, fp);
+    fputs(text2, fp);
+    fputs(buffer2, fp);
+    fclose(fp);
 }
 
 int main()
@@ -1150,6 +1536,8 @@ int main()
             pastestr();
         else if(!strcmp(str, "find"))
             findstr();
+        else if(!strcmp(str, "replace"))
+            replace();
         else if(!strcmp(str, "exit"))
             return 0;
         else{
@@ -1158,4 +1546,3 @@ int main()
         }
     }
 }
-
