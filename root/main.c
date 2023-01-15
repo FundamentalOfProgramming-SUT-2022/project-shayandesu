@@ -1330,7 +1330,7 @@ void replace_all()
             }
         }
         strncat(text1, &c, 1);
-        printf("Text: %s\n", text1);
+        //printf("Text: %s\n", text1);
     }
 
     if(strcasecmp(text1tmp, "--str2")){
@@ -1485,9 +1485,9 @@ void replace()
           break;
         }
     }
-    printf("Text1 is: |%s|\n", text1);
-    printf("Text2 is: |%s|\n", text2);
-    printf("End of text: %ld \n", endtext);
+    //printf("Text1 is: |%s|\n", text1);
+    //printf("Text2 is: |%s|\n", text2);
+    //printf("End of text: %ld \n", endtext);
     if(endtext== -1){
         printf("Not found.\n");
         return;
@@ -1510,6 +1510,61 @@ void replace()
     fputs(text2, fp);
     fputs(buffer2, fp);
     fclose(fp);
+}
+
+//Searching for a text inside multiple files
+void grep()
+{
+    void grep_finder(char* location, char* rtext);
+    char c;
+    char *str, *s, *address;
+    address = (char*)calloc(500, sizeof(char));
+    str = (char*)calloc(150, sizeof(char));
+    s = (char*)calloc(150, sizeof(char));
+
+    scanf("%s", s);
+    if(strcasecmp(s, "--file")){
+        gets(s);
+        printf("Invalid input.\n");
+        return;
+    }
+    scanf("%c", &c);
+    while(1){
+        scanf("%s", str);
+        //printf("%s\n", str);
+        if(!strcmp(str, "--str"))
+            break;
+        strcat(address, str);
+        strcat(address, " ");
+        str = (char*)calloc(150, sizeof(char));
+    }
+
+    scanf("%c", &c);
+    if(strcasecmp(str, "--str")){
+        gets(str);
+        printf("Invalid input.\n");
+        return;
+    }
+    char text[100];
+    gets(text);
+
+    int i = 0, j = 0;
+    char* buffer = (char*)malloc(50);
+    while(address[i] != '\0'){
+        if(address[i] == ' '){
+            buffer[j] = '\0';
+            grep_finder(buffer, text);
+            free(buffer);
+            buffer = (char*)malloc(50);
+            i++;
+            j = 0;
+        }
+        else{
+            buffer[j] = address[i];
+            j++;
+            i++;
+        }
+    }
 }
 
 int main()
@@ -1538,6 +1593,8 @@ int main()
             findstr();
         else if(!strcmp(str, "replace"))
             replace();
+        else if(!strcmp(str, "grep"))
+            grep();
         else if(!strcmp(str, "exit"))
             return 0;
         else{
@@ -1545,4 +1602,46 @@ int main()
             printf("Invalid input\n");
         }
     }
+}
+
+void grep_finder(char* location, char* rtext)
+{
+    char c;
+    FILE *fp = NULL;
+    fp = fopen(location, "rb+");
+    if(fp == NULL)
+        return;
+    fseek(fp, 0L, SEEK_END);
+    long int len = strlen(rtext);
+    long int end = ftell(fp);
+    char* buffer = (char*)malloc(len);
+    fseek(fp, 0L, SEEK_SET);
+    long int line_start = 0, line_end = 0;
+
+    for(long int i = 0; i < end; i++){
+        int j = 0;
+        fseek(fp, i, SEEK_SET);
+        if(fgetc(fp)=='\n')
+            line_start = ftell(fp);
+        fseek(fp, i, SEEK_SET);
+        for(j = 0; j < len; j++){
+            c = fgetc(fp);
+            buffer[j] = c;
+        }
+        buffer[j] = '\0';
+        if(!strcmp(buffer, rtext)){
+          printf("%s: ", location);
+          while(1){
+            c = fgetc(fp);
+            if( c == '\n' || c == EOF){
+                line_end = ftell(fp);
+                break;
+            }
+          }
+          fseek(fp, line_start, SEEK_SET);
+          while(ftell(fp) < line_end)
+            printf("%c", fgetc(fp));
+        }
+    }
+    printf("\n");
 }
