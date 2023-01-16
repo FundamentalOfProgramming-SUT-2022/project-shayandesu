@@ -16,4 +16,11 @@ available commands for now:
 • cutstr: Cutting a part of a text file to clipboard.  
 • pastestr: Pasting content that had been copied inside a file.  
 • find: Finding a certain text inside a file with various attributes  
-• replace: replace a text inside a file with another text with attributes  
+• replace: Replace a text inside a file with another text with attributes  
+• grep: Searching for a text inside multiple files  
+
+
+changes to be made:  
+• adding alternatives with <\> to avoid complication caused by next command  
+• adding alternative for space in <grep>
+• fixing bugs caused by carriage return

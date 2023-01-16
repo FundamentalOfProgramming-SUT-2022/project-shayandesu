@@ -1516,18 +1516,41 @@ void replace()
 void grep()
 {
     void grep_finder(char* location, char* rtext);
+    int grep_finder_c(char* location, char* rtext);
+    void grep_finder_l(char* location, char* rtext);
     char c;
     char *str, *s, *address;
     address = (char*)calloc(500, sizeof(char));
     str = (char*)calloc(150, sizeof(char));
     s = (char*)calloc(150, sizeof(char));
+    int option = 0, count = 0;
 
     scanf("%s", s);
-    if(strcasecmp(s, "--file")){
+    if(!strcmp(s, "-c")){
+        option = 1;
+        scanf("%s", s);
+        if(strcasecmp(s, "--file")){
+            gets(s);
+            printf("Invalid input.\n");
+            return;
+        }
+    }
+    else if(!strcmp(s, "-l")){
+        option = 2;
+        scanf("%c", &c);
+        scanf("%s", s);
+        if(strcasecmp(s, "--file")){
+            gets(s);
+            printf("Invalid input.\n");
+            return;
+        }
+    }
+    else if(strcasecmp(s, "--file")){
         gets(s);
         printf("Invalid input.\n");
         return;
     }
+
     scanf("%c", &c);
     while(1){
         scanf("%s", str);
@@ -1553,7 +1576,12 @@ void grep()
     while(address[i] != '\0'){
         if(address[i] == ' '){
             buffer[j] = '\0';
-            grep_finder(buffer, text);
+            if(option == 0)
+                grep_finder(buffer, text);
+            else if(option == 1)
+                count += grep_finder_c(buffer, text);
+            else if(option == 2)
+                grep_finder_l(buffer, text);
             free(buffer);
             buffer = (char*)malloc(50);
             i++;
@@ -1565,6 +1593,8 @@ void grep()
             i++;
         }
     }
+    if(option==1) printf("Number of lines: %d\n", count);
+    if(option==2) printf("\n");
 }
 
 int main()
@@ -1604,6 +1634,10 @@ int main()
     }
 }
 
+/////////////////////////////////
+//////    grep functions   //////
+/////////////////////////////////
+
 void grep_finder(char* location, char* rtext)
 {
     char c;
@@ -1641,7 +1675,78 @@ void grep_finder(char* location, char* rtext)
           fseek(fp, line_start, SEEK_SET);
           while(ftell(fp) < line_end)
             printf("%c", fgetc(fp));
+          i = line_end;
         }
     }
     printf("\n");
+}
+
+int grep_finder_c(char* location, char* rtext)
+{
+    char c;
+    int line_counter = 0;
+    FILE *fp = NULL;
+    fp = fopen(location, "rb+");
+    if(fp == NULL)
+        return line_counter;
+    fseek(fp, 0L, SEEK_END);
+    long int len = strlen(rtext);
+    long int end = ftell(fp);
+    char* buffer = (char*)malloc(len);
+    fseek(fp, 0L, SEEK_SET);
+    long int line_end = 0;
+
+    for(long int i = 0; i < end; i++){
+        int j = 0;
+        fseek(fp, i, SEEK_SET);
+        for(j = 0; j < len; j++){
+            c = fgetc(fp);
+            buffer[j] = c;
+        }
+        buffer[j] = '\0';
+        if(!strcmp(buffer, rtext)){
+          while(1){
+            c = fgetc(fp);
+            if( c == '\n' || c == EOF){
+                line_end = ftell(fp);
+                break;
+            }
+          }
+          line_counter++;
+          i = line_end;
+        }
+    }
+    fclose(fp);
+    free(buffer);
+    return line_counter;
+}
+
+void grep_finder_l(char* location, char* rtext)
+{
+    char c;
+    FILE *fp = NULL;
+    fp = fopen(location, "rb+");
+    if(fp == NULL)
+        return;
+    fseek(fp, 0L, SEEK_END);
+    long int len = strlen(rtext);
+    long int end = ftell(fp);
+    char* buffer = (char*)malloc(len);
+    fseek(fp, 0L, SEEK_SET);
+
+    for(long int i = 0; i < end; i++){
+        int j = 0;
+        fseek(fp, i, SEEK_SET);
+        for(j = 0; j < len; j++){
+            c = fgetc(fp);
+            buffer[j] = c;
+        }
+        buffer[j] = '\0';
+        if(!strcmp(buffer, rtext)){
+          printf("%s ", location);
+          fclose(fp);
+          free(buffer);
+          return;
+        }
+    }
 }
