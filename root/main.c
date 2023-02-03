@@ -1,21 +1,23 @@
 #include <conio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <windows.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
 
-char* saver;
+char* saver, *bush;
 char* text_generator(char* atext);
+void previous_saver(char* location, char* rtext);
 
 //Creating a File
 //createfile --file
 void create()
 {
-    char c, str[200];
-    char *s = (char*)malloc(200);
+    char c;
+    char *s = (char*)malloc(200), *str = (char*)calloc(1000, sizeof(char)), *address = (char*)calloc(1000, sizeof(char));
 
     scanf("%s", s);
 
@@ -24,41 +26,67 @@ void create()
         printf("Invalid Input\n");
         return;
     }
-
     free(s);
-
+    long int i = 0;
     scanf("%c", &c);
+    scanf("%c", &c);
+    if(c != '"'){
+        int f = 1;
+        str[0] = c;
+        scanf("%c", &c);
+        while( (c != '\n') && (c != ' ') ){
+            str[f] = c;
+            f++;
+            scanf("%c", &c);
+        }
+        str[f] = '\0';
+    }
+    else{
+        while(1){
+            scanf("%c", &str[i]);
+            if((str[i] == '"') && (str[i-1] != '\\'))
+                break;
+            i++;
+        }
+        str[i] = '\0';
+    }
+    strcpy(address, str);
 
-    gets(str);
-
-    printf("\nYour chosen path: %s\n\n", str);
+    //printf("\nYour chosen path: %s\n\n", str);
 
     char* str_ = (char*)calloc(200, sizeof(char));
 
-    int i = 0;
+    i = 0;
 
     while(1){
-        if(str[i]=='\\'){
+        if(address[i]=='\\'){
             mkdir(str_);
         }
-        str_[i] = str[i];
+        str_[i] = address[i];
         i++;
-        if(str[i]=='\0'){
+        if(address[i]=='\0'){
             str_[i] = '\0';
             break;
         }
     }
 
     FILE* fp = NULL;
-    fp = fopen(str, "r");
+    fp = fopen(address, "r");
     if(fp != NULL){
         printf("File already exist.\n");
+        free(str); free(address); free(str_);
         return;
     }
 
-    fp = fopen(str, "w+");
+    fp = fopen(address, "w+");
+    if(fp==NULL){
+        printf("Unable to create file.\n");
+        free(str); free(address); free(str_);
+        return;
+    }
 
     fclose(fp);
+    free(str); free(address); free(str_);
 }
 
 //Inserting a String
@@ -82,10 +110,15 @@ void insertstr()
     scanf("%c", &c);
     scanf("%c", &c);
     if(c != '"'){
+        int f = 1;
         str[0] = c;
-        str[1] = '\0';
-        scanf("%s", s);
-        strcat(str, s);
+        scanf("%c", &c);
+        while( (c != '\n') && (c != ' ') ){
+            str[f] = c;
+            f++;
+            scanf("%c", &c);
+        }
+        str[f] = '\0';
     }
     else{
         while(1){
@@ -96,7 +129,7 @@ void insertstr()
         }
         str[i] = '\0';
     }
-    address = text_generator(str);
+    strcpy(address, str);
     i = 0;
     FILE* fp = NULL;
     fp = fopen(address, "rb+");
@@ -108,16 +141,22 @@ void insertstr()
     scanf("%s", str);
     if(strcasecmp(str, "--str")){
         gets(str);
+        fclose(fp); free(text);
         printf("Invalid input.\n");
         return;
     }
     scanf("%c", &c);
     scanf("%c", &c);
     if(c != '"'){
+        int f = 1;
         str[0] = c;
-        str[1] = '\0';
-        scanf("%s", s);
-        strcat(str, s);
+        scanf("%c", &c);
+        while( (c != '\n') && (c != ' ') ){
+            str[f] = c;
+            f++;
+            scanf("%c", &c);
+        }
+        str[f] = '\0';
     }
     else{
         while(1){
@@ -142,17 +181,17 @@ void insertstr()
     previous_saver(address, current);
     fseek(fp, 0L, SEEK_SET);
 
-    scanf("%c", &c);
     scanf("%s", str);
     if(strcasecmp(str, "--pos")){
         gets(str);
         printf("Invalid input.\n");
+        fclose(fp); free(text); free(current);
         return;
     }
     //printf("Desired text: %s\n", text);
 
     char get;
-    int line, ch, j = 1;
+    int line, ch, j = 0;
     i = 1;
     scanf(" %d:%d", &line, &ch);
 
@@ -163,6 +202,7 @@ void insertstr()
         get = fgetc(fp);
         if(get==EOF){
             printf("Invalid position.\n");
+            fclose(fp); free(text); free(current);
             return;
         }
         //printf("| %c", get);
@@ -176,6 +216,7 @@ void insertstr()
         get = fgetc(fp);
         if(get=='\n'){
             printf("Invalid position.\n");
+            fclose(fp); free(text); free(current);
             return;
         }
         //printf("%c | ", get);
@@ -190,18 +231,27 @@ void insertstr()
     fread(buffer, 1, buf_size, fp);
     //printf("buffer: %s\n", buffer);
     fseek(fp, here, SEEK_SET);
+    i = 0;
+    while(text[i] != '\0'){
+        fputc(text[i], fp);
+        i++;
+    }
+    i = 0;
+    while(buffer[i] != '\0'){
+        fputc(buffer[i], fp);
+        i++;
+    }
+    //fputs(text, fp);
+    //fputs(buffer, fp);
 
-    fputs(text, fp);
-    fputs(buffer, fp);
-
-    fclose(fp);
+    fclose(fp); free(buffer); free(text); free(current);
 }
 
 //Showing a file
 //cat --file
 void cat()
 {
-    char* s = (char*)malloc(200);
+    char* s = (char*)malloc(200), *str = (char*)calloc(1000, sizeof(char)), *address = (char*)calloc(1000, sizeof(char));
     char c;
     scanf("%s", s);
     if(strcasecmp(s, "--file")){
@@ -209,16 +259,38 @@ void cat()
         printf("Invalid input.\n");
         return;
     }
+    //free(s);
+    long int i = 0;
     scanf("%c", &c);
-    free(s);
-    s = (char*)malloc(200);
-    gets(s);
+    scanf("%c", &c);
+    if(c != '"'){
+        int f = 1;
+        str[0] = c;
+        scanf("%c", &c);
+        while( (c != '\n') && (c != ' ') ){
+            str[f] = c;
+            f++;
+            scanf("%c", &c);
+        }
+        str[f] = '\0';
+    }
+    else{
+        while(1){
+            scanf("%c", &str[i]);
+            if((str[i] == '"') && (str[i-1] != '\\'))
+                break;
+            i++;
+        }
+        str[i] = '\0';
+    }
+    strcpy(address, str);
     //printf("%s", s);
 
     FILE* fp = NULL;
-    fp = fopen(s, "r");
+    fp = fopen(address, "r");
     if(fp==NULL){
-        printf("The directory you entered does not exist.\nTry creating it using <createfile> command.\n\n");
+        printf("The directory you entered does not exist.\nTry creating it using <createfile> command.\n");
+        free(s); free(address); free(str);
         return;
     }
 
@@ -227,7 +299,7 @@ void cat()
         printf("%c", c);
     }
     printf("\n");
-    free(s);
+    free(s); free(address); free(str);
     fclose(fp);
 }
 
@@ -249,10 +321,15 @@ void removestr()
     scanf("%c", &c);
     scanf("%c", &c);
     if(c != '"'){
+        int f = 1;
         str[0] = c;
-        str[1] = '\0';
-        scanf("%s", s);
-        strcat(str, s);
+        scanf("%c", &c);
+        while( (c != '\n') && (c != ' ') ){
+            str[f] = c;
+            f++;
+            scanf("%c", &c);
+        }
+        str[f] = '\0';
     }
     else{
         while(1){
@@ -263,7 +340,7 @@ void removestr()
         }
         str[i] = '\0';
     }
-    address = text_generator(str);
+    strcpy(address, str);
     i = 0;
 
     //printf("Address is: %s\n", address);
@@ -287,7 +364,6 @@ void removestr()
     previous_saver(address, current);
     fseek(fp, 0L, SEEK_SET);
 
-    scanf("%c", &c);
     scanf("%s", s);
     if(strcmp(s, "--pos")){
         gets(s);
@@ -309,7 +385,7 @@ void removestr()
     //printf("Size: %ld\n", len);
 
     scanf("%s", s);
-    int j = 1;
+    int j = 0;
     i = 1;
     char get;
 
@@ -396,7 +472,7 @@ void removestr()
 void copystr()
 {
     free(saver);
-    saver = (char*)malloc(1000);
+    saver = (char*)malloc(15000);
     char s[300];
     char c;
     char *address = (char*)malloc(500);
@@ -412,10 +488,15 @@ void copystr()
     scanf("%c", &c);
     scanf("%c", &c);
     if(c != '"'){
+        int f = 1;
         str[0] = c;
-        str[1] = '\0';
-        scanf("%s", s);
-        strcat(str, s);
+        scanf("%c", &c);
+        while( (c != '\n') && (c != ' ') ){
+            str[f] = c;
+            f++;
+            scanf("%c", &c);
+        }
+        str[f] = '\0';
     }
     else{
         while(1){
@@ -426,7 +507,7 @@ void copystr()
         }
         str[i] = '\0';
     }
-    address = text_generator(str);
+    strcpy(address, str);
     i = 0;
 
     //printf("Address is: %s\n", address);
@@ -437,7 +518,6 @@ void copystr()
         return;
     }
 
-    scanf("%c", &c);
     scanf("%s", s);
     if(strcmp(s, "--pos")){
         gets(s);
@@ -460,7 +540,7 @@ void copystr()
 
     scanf("%s", s);
     i = 1;
-    int j = 1;
+    int j = 0;
     char get;
 
     while(i < line){
@@ -523,7 +603,7 @@ void cutstr()
 {
     void previous_saver(char* location, char* rtext);
     free(saver);
-    saver = (char*)malloc(1000);
+    saver = (char*)malloc(15000);
     char* buffer = (char*)malloc(4000);
     char* address = (char*)malloc(500);
     char *str= (char*)malloc(300);
@@ -539,10 +619,15 @@ void cutstr()
     scanf("%c", &c);
     scanf("%c", &c);
     if(c != '"'){
+        int f = 1;
         str[0] = c;
-        str[1] = '\0';
-        scanf("%s", s);
-        strcat(str, s);
+        scanf("%c", &c);
+        while( (c != '\n') && (c != ' ') ){
+            str[f] = c;
+            f++;
+            scanf("%c", &c);
+        }
+        str[f] = '\0';
     }
     else{
         while(1){
@@ -553,7 +638,7 @@ void cutstr()
         }
         str[i] = '\0';
     }
-    address = text_generator(str);
+    strcpy(address, str);
     i = 0;
     //printf("Address is: %s\n", address);
     FILE* fp = NULL;
@@ -577,7 +662,6 @@ void cutstr()
     fseek(fp, 0L, SEEK_SET);
 
     strcpy(s, str);
-    scanf("%c", &c);
     scanf("%s", s);
     if(strcmp(s, "--pos")){
         gets(s);
@@ -599,7 +683,7 @@ void cutstr()
     //printf("Size: %ld\n", len);
 
     scanf("%s", s);
-    int j = 1;
+    int j = 0;
     i = 1;
     char get;
 
@@ -711,10 +795,15 @@ void pastestr()
     scanf("%c", &c);
     scanf("%c", &c);
     if(c != '"'){
+        int f = 1;
         str[0] = c;
-        str[1] = '\0';
-        scanf("%s", s);
-        strcat(str, s);
+        scanf("%c", &c);
+        while( (c != '\n') && (c != ' ') ){
+            str[f] = c;
+            f++;
+            scanf("%c", &c);
+        }
+        str[f] = '\0';
     }
     else{
         while(1){
@@ -725,7 +814,7 @@ void pastestr()
         }
         str[i] = '\0';
     }
-    address = text_generator(str);
+    strcpy(address, str);
     i = 0;
 
     FILE* fp = NULL;
@@ -748,7 +837,6 @@ void pastestr()
     previous_saver(address, current);
     fseek(fp, 0L, SEEK_SET);
 
-    scanf("%c", &c);
     scanf("%s", str);
     if(strcasecmp(str, "--pos")){
         printf("%s\n", str);
@@ -758,7 +846,7 @@ void pastestr()
     }
 
     char get;
-    int line, ch,j = 1;
+    int line, ch,j = 0;
     i = 1;
     scanf(" %d:%d", &line, &ch);
 
@@ -857,10 +945,15 @@ void find()
     scanf("%c", &c);
     scanf("%c", &c);
     if(c != '"'){
+        int f = 1;
         str[0] = c;
-        str[1] = '\0';
-        scanf("%s", s);
-        strcat(str, s);
+        scanf("%c", &c);
+        while( (c != '\n') && (c != ' ') ){
+            str[f] = c;
+            f++;
+            scanf("%c", &c);
+        }
+        str[f] = '\0';
     }
     else{
         while(1){
@@ -871,10 +964,9 @@ void find()
         }
         str[i] = '\0';
     }
-    address = text_generator(str);
+    strcpy(address, str);
     i = 0;
 
-    scanf("%c", &c);
     scanf("%s", s);
     if(strcasecmp(s, "--str")){
         gets(s);
@@ -1017,7 +1109,7 @@ void replace()
         str[i] = '\0';
         scanf("%c", &c);
     }
-    address = text_generator(str);
+    strcpy(address, str);
     i = 0;
 
     scanf("%s", s);
@@ -1104,6 +1196,7 @@ void replace()
     current[ct-1] = '\0';
     previous_saver(address, current);
     fseek(fp, 0L, SEEK_SET);
+    //printf("G\n");
 
     if(at==1){
         at_start = find_at(fp, text1, at_num, star, 0);
@@ -1134,16 +1227,21 @@ void replace()
 //grep --str --file
 void grep()
 {
-    void grep_finder(char* location, char* rtext);
+    void line_reader(char* address, long int location);
+    long int* grep_finder(char* location, char* rtext);
     int grep_finder_c(char* location, char* rtext);
-    void grep_finder_l(char* location, char* rtext);
+    int grep_finder_l(char* location, char* rtext);
     char c;
     char *str, *s, *address, *text;
     address = (char*)calloc(500, sizeof(char));
     str = (char*)calloc(150, sizeof(char));
     s = (char*)calloc(150, sizeof(char));
     text = (char*)calloc(200, sizeof(char));
-    int option = 0, count = 0;
+    char** list = (char**)calloc(100, sizeof(char*));
+    long int* line_starts = (long int*)calloc(100, sizeof(int)),*lines = (long int*)calloc(100, sizeof(int)) ;
+    for(int i = 0; i < 100; i++) *(list+i) = (char*)calloc(100, sizeof(char));
+
+    int option = 0, count = 0, listct = 0;
     long int i = 0;
     scanf("%s", s);
     if(!strcmp(s, "-c")){
@@ -1173,10 +1271,15 @@ void grep()
     scanf("%c", &c);
     scanf("%c", &c);
     if(c != '"'){
+        int f = 1;
         str[0] = c;
-        str[1] = '\0';
-        scanf("%s", s);
-        strcat(str, s);
+        scanf("%c", &c);
+        while( (c != '\n') && (c != ' ') ){
+            str[f] = c;
+            f++;
+            scanf("%c", &c);
+        }
+        str[f] = '\0';
     }
     else{
         while(1){
@@ -1189,25 +1292,30 @@ void grep()
     }
     text = text_generator(str);
     i = 0;
-    scanf("%c", &c);
     scanf("%s", s);
     if(strcasecmp(s, "--file")){
         gets(s);
         printf("Invalid input.\n");
         return;
     }
+    scanf("%c", &c);
     while(c != '\n'){
-        scanf("%c", &c);
-        if(c=='\n')
-            break;
+        //scanf("%c", &c);
+        //if(c=='\n')
+            //break;
         scanf("%c", &c);
         if(c=='\n')
             break;
         if(c != '"'){
+            int f = 1;
             str[0] = c;
-            str[1] = '\0';
-            scanf("%s", s);
-            strcat(str, s);
+            scanf("%c", &c);
+            while( (c != '\n') && (c != ' ') ){
+                str[f] = c;
+                f++;
+                scanf("%c", &c);
+            }
+            str[f] = '\0';
         }
         else{
             while(1){
@@ -1217,18 +1325,52 @@ void grep()
                 i++;
             }
             str[i] = '\0';
+            scanf("%c", &c);
         }
-        address = text_generator(str);
-        printf("%s\n", address);
+        strcpy(address, str);
+        //printf("%s\n", address);
         i = 0;
-        if(option == 0)
-            grep_finder(address, text);
+        if(option == 0){
+            lines = grep_finder(address, text);
+            if(lines==NULL){
+                free(str);
+                str = (char*)calloc(200, sizeof(char));
+                continue;
+            }
+            int j = 0;
+            while(*(lines+j)!=-1){
+                strcpy(*(list+listct), address);
+                *(line_starts+listct) = *(lines+j);
+                listct++;
+                j++;
+            }
+        }
         else if(option == 1)
             count += grep_finder_c(address, text);
-        else if(option == 2)
-            grep_finder_l(address, text);
+        else if(option == 2){
+            if(grep_finder_l(address, text)){
+                strcpy(*(list+listct), address);
+                listct++;
+            }
+        }
         free(str);
         str = (char*)calloc(200, sizeof(char));
+    }
+    //printf("%s | %s | %s\n", *(list), *(list+1), *(list+2));
+    //printf("%ld | %ld | %ld\n", *(line_starts), *(line_starts+1), *(line_starts+2));
+    if(option==0){
+        for(int i = 0; i < listct; i++){
+            printf("%s: ", *(list+i));
+            line_reader(*(list+i), *(line_starts+i));
+            printf("\n");
+        }
+    }
+    else if(option==1){
+        printf("%d\n", count);
+    }
+    else if(option==2){
+        for(int i = 0; i < listct; i++)printf(" %s ", *(list+i));
+        printf("\n");
     }
 }
 
@@ -1262,6 +1404,7 @@ void undo()
         c = fgetc(fp);
     }
     pre[i] = '\0';
+    //fread(pre, 1, end, fp);
     //printf("%s\n", pre);
     fclose(fp);
     fp = fopen(address, "rb+");
@@ -1269,19 +1412,35 @@ void undo()
     end = ftell(fp);
     char* current = (char*)calloc(end, sizeof(char));
     fseek(fp, 0L, SEEK_SET);
+    c = fgetc(fp);
     while(c != EOF){
-        c = fgetc(fp);
         current[ct] = c;
+        //printf("|%c|", c);
+        c = fgetc(fp);
         ct++;
     }
     current[ct-1] = '\0';
-    previous_saver(address, current);
+    ct = 0;
+    //printf("Current:\n%s\n\n", current);
+    //previous_saver(address, current);
+    fclose(fp);
+    fp = fopen(def, "w+");
+    while(current[ct] != '\0'){
+        fputc(current[ct], fp);
+        ct++;
+    }
+    ct = 0;
     fclose(fp);
     fp = fopen(address, "w+");
-    fputs(pre, fp);
+    //printf("Pre:\n%s\n\n", pre);
+    long int newest = 0;
+    while(pre[newest] != '\0'){
+        fputc(pre[newest], fp);
+        newest++;
+    }
     fclose(fp);
-    free(pre);
-    free(current);
+    //free(pre);
+    //free(current);
 }
 
 void indent()
@@ -1298,6 +1457,21 @@ void indent()
     fseek(fp, 0L, SEEK_END);
     long int end = ftell(fp), ct = 0, i = 0;
     char* buffer = (char*)calloc(end, sizeof(char));
+
+    /*fseek(fp, 0L, SEEK_END);
+    long int end_ = ftell(fp), ct_ = 0;
+    char* current = (char*)calloc(end_, sizeof(char));
+    fseek(fp, 0L, SEEK_SET);
+    while(c != EOF){
+        c = fgetc(fp);
+        current[ct_] = c;
+        ct_++;
+    }
+    current[ct_-1] = '\0';
+    previous_saver(address, current);
+    fseek(fp, 0L, SEEK_SET);*/
+
+
     fseek(fp, 0L, SEEK_SET);
     while(c != EOF){
         c = fgetc(fp);
@@ -1305,6 +1479,7 @@ void indent()
         ct++;
     }
     buffer[ct-1] = '\0';
+    previous_saver(address, buffer);
     //printf("%s\n\n", buffer);
     int rbracect = 0, rbracedone = 0;
     while(1){
@@ -1383,9 +1558,16 @@ void indent()
             break;
         i++;
     }
+    i = 0;
 
     fclose(fp);
-    printf("%s\n", buffer);
+    fopen(address, "w+");
+    //printf("gee\n");
+    while(buffer[i] != '\0'){
+        fputc(buffer[i], fp);
+        i++;
+    }
+    fclose(fp);
 }
 
 void compare()
@@ -1418,7 +1600,7 @@ void compare()
         str[i] = '\0';
         scanf("%c", &c);
     }
-    address1 = text_generator(str);
+    strcpy(address1, str);
     //printf("ADDRESS1: |%s|\n", address1);
     i = 0;
     scanf("%c", &c);
@@ -1555,7 +1737,7 @@ void tree()
 int main()
 {
     char* str = (char*)calloc(150, sizeof(char));
-
+    void arman();
     while(1){
         printf("root >>> ");
         scanf("%s", str);
@@ -1588,12 +1770,1132 @@ int main()
             compare();
         else if(!strcmp(str, "tree"))
             tree();
+        else if(!strcmp(str,"=D"))
+            arman();
+        else if(!strcmp(str, "clear"))
+            system("cls");
         else if(!strcmp(str, "exit"))
             return 0;
         else{
             gets(str);
             printf("Invalid input\n");
         }
+    }
+}
+
+void arman_insert(char* text)
+{
+    char *str = (char*)calloc(1000, sizeof(char)), c;
+    char *address = (char*)calloc(1000, sizeof(char));
+    scanf("%c", &c);
+    scanf("%s", str);
+    if(strcmp(str, "--file")){
+        gets(str);
+        printf("Invalid input");
+    }
+    long int i = 0;
+    scanf("%c", &c);
+    scanf("%c", &c);
+    if(c != '"'){
+        int f = 1;
+        str[0] = c;
+        scanf("%c", &c);
+        while( (c != '\n') && (c != ' ') ){
+            str[f] = c;
+            f++;
+            scanf("%c", &c);
+        }
+        str[f] = '\0';
+    }
+    else{
+        while(1){
+            scanf("%c", &str[i]);
+            if((str[i] == '"') && (str[i-1] != '\\'))
+                break;
+            i++;
+        }
+        str[i] = '\0';
+        scanf("%c", &c);
+    }
+    strcpy(address, str);
+    i = 0;
+    FILE* fp = NULL;
+    fp = fopen(address, "rb+");
+    if(fp==NULL){
+        gets(str);
+        printf("The directory you entered does not exist.\nTry creating it using <createfile> command.\n\n");
+        return;
+    }
+    fseek(fp, 0L, SEEK_END);
+    long int end = ftell(fp), ct = 0;
+    char* current = (char*)calloc(end, sizeof(char));
+    fseek(fp, 0L, SEEK_SET);
+    while(c != EOF){
+        c = fgetc(fp);
+        current[ct] = c;
+        ct++;
+    }
+    current[ct-1] = '\0';
+    previous_saver(address, current);
+    fseek(fp, 0L, SEEK_SET);
+
+    scanf("%s", str);
+    if(strcasecmp(str, "--pos")){
+        gets(str);
+        printf("Invalid input.\n");
+        return;
+    }
+    //printf("Desired text: %s\n", text);
+
+    char get;
+    int line, ch, j = 1;
+    i = 1;
+    scanf(" %d:%d", &line, &ch);
+
+    //printf("Line: %d | Character: %d\n", line, ch);
+
+    while(i < line){
+        //printf("Line: %d | Character: %d\n", line, ch);
+        get = fgetc(fp);
+        if(get==EOF){
+            printf("Invalid position.\n");
+            return;
+        }
+        //printf("| %c", get);
+        if(get=='\n')
+            i++;
+        //int a = ftell(fp);
+        //printf(" %d |\n", a);
+    }
+
+    while(j < ch){
+        get = fgetc(fp);
+        if(get=='\n'){
+            printf("Invalid position.\n");
+            return;
+        }
+        //printf("%c | ", get);
+        j++;
+    }
+
+
+    long int here = ftell(fp);
+    long int buf_size = end - here;
+    fseek(fp, here, SEEK_SET);
+    char* buffer = (char*)calloc(buf_size, sizeof(char));
+    fread(buffer, 1, buf_size, fp);
+    //printf("buffer: %s\n", buffer);
+    fseek(fp, here, SEEK_SET);
+
+    fputs(text, fp);
+    fputs(buffer, fp);
+
+    fclose(fp);
+}
+
+void arman_replace(char* sub)
+{
+    star = -1;
+    void replace_all(char* address, char* text, long int* starts, long int* ends);
+    long int* find_all2(FILE *fp, char* dtext, int starpos, int word);
+    long int find_at2(FILE *fp, char* dtext, int place, int starpos, int word);
+    void replace_at(char* file_address, char* changetext, long int location1, long int location2);
+    long int* find_all(FILE *fp, char* text, int starpos, int word);
+    long int find_at(FILE *fp, char* dtext, int place, int starpos, int word);
+    void previous_saver(char* location, char* rtext);
+    char c;
+    char *str, *s, *address;
+    address = (char*)calloc(500, sizeof(char));
+    str = (char*)calloc(150, sizeof(char));
+    s = (char*)calloc(150, sizeof(char));
+    char* text1 = (char*)calloc(1000, sizeof(char));
+    char* text2 = (char*)malloc(1000);
+    int all = 0, at = 0, at_num = -1;
+    long int at_start = -1, at_end = -1, *results_end = (long int*)calloc(500, sizeof(long int));
+    long int *results_start = (long int*)calloc(500, sizeof(long int));
+    scanf("%s", s);
+    if(!strcmp(s, "-all")){
+        all = 1;
+        scanf("%c", &c);
+        scanf("%s", s);
+        if(strcasecmp(s, "--file")){
+            printf("FILE\n");
+            gets(s);
+            printf("Invalid input.\n");
+            return;
+        }
+    }
+    else if(!strcmp(s, "-at")){
+        at = 1;
+        scanf("%d", &at_num);
+        scanf("%c", &c);
+        scanf("%s", s);
+        if(strcasecmp(s, "--file")){
+            gets(s);
+            printf("Invalid input.\n");
+            return;
+        }
+    }
+    else if(strcasecmp(s, "--file")){
+        gets(s);
+        printf("Invalid input.\n");
+        return;
+    }
+
+    long int i = 0;
+    scanf("%c", &c);
+    scanf("%c", &c);
+    if(c != '"'){
+        int f = 1;
+        str[0] = c;
+        scanf("%c", &c);
+        while( (c != '\n') && (c != ' ') ){
+            str[f] = c;
+            f++;
+            scanf("%c", &c);
+        }
+        str[f] = '\0';
+    }
+    else{
+        while(1){
+            scanf("%c", &str[i]);
+            if((str[i] == '"') && (str[i-1] != '\\'))
+                break;
+            i++;
+        }
+        str[i] = '\0';
+        scanf("%c", &c);
+    }
+    strcpy(address, str);
+    i = 0;
+
+    scanf("%s", s);
+    int which = 0;
+    if(!strcasecmp(s, "--str1"))
+        which = 1;
+    else if(!strcasecmp(s, "--str2"))
+        which = 2;
+    else{
+        gets(s);
+        printf("Invalid input.\n");
+        return;
+    }
+    scanf("%c", &c);
+    scanf("%c", &c);
+    if(c != '"'){
+        int f = 1;
+        str[0] = c;
+        scanf("%c", &c);
+        while( (c != '\n') && (c != ' ') ){
+            str[f] = c;
+            f++;
+            scanf("%c", &c);
+        }
+        str[f] = '\0';
+    }
+    else{
+        while(1){
+            scanf("%c", &str[i]);
+            if((str[i] == '"') && (str[i-1] != '\\'))
+                break;
+            i++;
+        }
+        str[i] = '\0';
+        scanf("%c", &c);
+    }
+    if(which==1){
+        text1 = text_generator(str);
+        strcpy(text2, sub);
+    }
+    else if(which==2){
+        text2 = text_generator(str);
+        strcpy(text1, sub);
+    }
+    //printf("text1: %s\ntext2: %s", text1, text2);
+    //printf("STAR: %d\n", star);
+    i = 0;
+
+    FILE* fp = NULL;
+    fp = fopen(address, "rb");
+    if(fp==NULL){
+        gets(str);
+        printf("The directory you entered does not exist.\nTry creating it using <createfile> command.\n\n");
+        return;
+    }
+
+    fseek(fp, 0L, SEEK_END);
+    long int end = ftell(fp), ct = 0;
+    char* current = (char*)calloc(end, sizeof(char));
+    fseek(fp, 0L, SEEK_SET);
+    while(c != EOF){
+        c = fgetc(fp);
+        current[ct] = c;
+        ct++;
+    }
+    current[ct-1] = '\0';
+    previous_saver(address, current);
+    fseek(fp, 0L, SEEK_SET);
+
+    if(at==1){
+        at_start = find_at(fp, text1, at_num, star, 0);
+        at_end = find_at2(fp, text1, at_num, star, 0);
+        //printf("ATPLACE: %ld | ATEND: %ld\n\n\n", at_start, at_end);
+        fclose(fp);
+        replace_at(address, text2, at_start, at_end);
+    }
+    else if(all==1){
+        results_start = find_all(fp, text1, star, 0);
+        results_end = find_all2(fp, text1, star, 0);
+        fclose(fp);
+        replace_all(address, text2, results_start, results_end);
+    }
+    else if(all==0 && at==0){
+        at_start = find_at(fp, text1, 1, star, 0);
+        at_end = find_at2(fp, text1, 1, star, 0);
+        //fclose(fp);
+        replace_at(address, text2, at_start, at_end);
+    }
+    free(text1);
+    free(text2);
+    free(address);
+    star = -1;
+}
+
+void arman_find_input(char* sub)
+{
+    star = -1;
+    long int* find_all(FILE *fp, char* text, int starpos, int word);
+    long int find_at(FILE *fp, char* dtext, int place, int starpos, int word);
+    int find_count(FILE *fp, char* dtext, int starpos);
+    char c;
+    char *str, *s, *address, *text = (char*)calloc(200, sizeof(char));
+    address = (char*)calloc(500, sizeof(char));
+    str = (char*)calloc(150, sizeof(char));
+    s = (char*)calloc(150, sizeof(char));
+    int all = 0, at = 0, byword = 0, count = 0, at_num = 0, counter = 0;
+    long int *results = (long int*)calloc(500, sizeof(long int)), places = -1;
+
+    while(counter <= 2){
+        scanf("%c", &c);
+        scanf("%s", s);
+        if(!strcmp(s, "-count"))
+            count = 1;
+        else if(!strcmp(s, "-at")){
+            scanf("%d", &at_num);
+            at = 1;}
+        else if(!strcmp(s, "-byword"))
+            byword = 1;
+        else if(!strcmp(s, "-all"))
+            all = 1;
+        else if(!strcmp(s, "--file")){
+            counter = 4;
+            break;
+        }
+        else{
+            printf("Invalid input.\n");
+            gets(str);
+            return;
+        }
+        counter++;
+    }
+
+    if(counter <= 3){
+        scanf("%c", &c);
+        scanf("%s", s);
+        if(strcasecmp(s, "--file")){
+            gets(s);
+            printf("Invalid input.\n");
+            return;
+        }
+    }
+    counter = 0;
+    long int i = 0;
+    scanf("%c", &c);
+    scanf("%c", &c);
+    if(c != '"'){
+        int f = 1;
+        str[0] = c;
+        scanf("%c", &c);
+        while( (c != '\n') && (c != ' ') ){
+            str[f] = c;
+            f++;
+            scanf("%c", &c);
+        }
+        str[f] = '\0';
+    }
+    else{
+        while(1){
+            scanf("%c", &str[i]);
+            if((str[i] == '"') && (str[i-1] != '\\'))
+                break;
+            i++;
+        }
+        str[i] = '\0';
+    }
+    strcpy(address, str);
+    i = 0;
+
+    strcpy(text, sub);
+
+    FILE* fp = NULL;
+    fp = fopen(address, "r");
+    if(fp==NULL){
+        gets(str);
+        printf("The directory you entered does not exist.\nTry creating it using <createfile> command.\n\n");
+        return;
+    }
+
+    if( (count == 1) && (at==0) && (byword==0) && (all==0)){
+        counter = find_count(fp, text, star);
+        printf("Number of occurrence: %d\n", counter);
+        star = -1;
+        return;
+    }
+    else if( (count == 0) && (at==0) && (all==1)){
+        results = find_all(fp, text, star, byword);
+        int cunt = 0;
+        while(*(results+cunt) != -1){
+            printf(" %ld", *(results+cunt));
+            cunt++;
+        }
+        printf("\n");
+    }
+    else if( (count == 0) && (at==1) && (all==0)){
+        places = find_at(fp, text, at_num, star, byword);
+        printf("%ld\n", places);
+    }
+    else if( (count == 0) && (at==0) && (all==0)){
+        places = find_at(fp, text, 1, star, byword);
+        printf("%ld\n", places);
+    }
+    else{
+        printf("Invalid combination of attributes.\n");
+    }
+    star = -1;
+}
+
+void arman_grep_input(char* sub)
+{
+    void line_reader(char* address, long int location);
+    long int* grep_finder(char* location, char* rtext);
+    int grep_finder_c(char* location, char* rtext);
+    int grep_finder_l(char* location, char* rtext);
+    char c;
+    char *str, *s, *address, *text;
+    address = (char*)calloc(500, sizeof(char));
+    str = (char*)calloc(150, sizeof(char));
+    s = (char*)calloc(150, sizeof(char));
+    text = (char*)calloc(200, sizeof(char));
+    char** list = (char**)calloc(100, sizeof(char*));
+    long int* line_starts = (long int*)calloc(100, sizeof(int)),*lines = (long int*)calloc(100, sizeof(int)) ;
+    for(int i = 0; i < 100; i++) *(list+i) = (char*)calloc(100, sizeof(char));
+    strcpy(text, sub);
+    int option = 0, count = 0, listct = 0;
+    long int i = 0;
+    scanf("%s", s);
+    if(!strcmp(s, "-c")){
+        option = 1;
+        scanf("%s", s);
+        if(strcasecmp(s, "--file")){
+            gets(s);
+            printf("Invalid input.\n");
+            return;
+        }
+    }
+    else if(!strcmp(s, "-l")){
+        option = 2;
+        scanf("%c", &c);
+        scanf("%s", s);
+        if(strcasecmp(s, "--file")){
+            gets(s);
+            printf("Invalid input.\n");
+            return;
+        }
+    }
+    else if(strcasecmp(s, "--file")){
+        gets(s);
+        printf("Invalid input.\n");
+        return;
+    }
+    scanf("%c", &c);
+    while(c != '\n'){
+        //scanf("%c", &c);
+        //if(c=='\n')
+            //break;
+        scanf("%c", &c);
+        if(c=='\n')
+            break;
+        if(c != '"'){
+            int f = 1;
+            str[0] = c;
+            scanf("%c", &c);
+            while( (c != '\n') && (c != ' ') ){
+                str[f] = c;
+                f++;
+                scanf("%c", &c);
+            }
+            str[f] = '\0';
+        }
+        else{
+            while(1){
+                scanf("%c", &str[i]);
+                if((str[i] == '"') && (str[i-1] != '\\'))
+                    break;
+                i++;
+            }
+            str[i] = '\0';
+            scanf("%c", &c);
+        }
+        strcpy(address, str);
+        //printf("%s\n", address);
+        i = 0;
+        if(option == 0){
+            lines = grep_finder(address, text);
+            int j = 0;
+            while(*(lines+j)!=-1){
+                strcpy(*(list+listct), address);
+                *(line_starts+listct) = *(lines+j);
+                listct++;
+                j++;
+            }
+        }
+        else if(option == 1)
+            count += grep_finder_c(address, text);
+        else if(option == 2){
+            if(grep_finder_l(address, text)){
+                strcpy(*(list+listct), address);
+                listct++;
+            }
+        }
+        free(str);
+        str = (char*)calloc(200, sizeof(char));
+    }
+    //printf("%s | %s | %s\n", *(list), *(list+1), *(list+2));
+    //printf("%ld | %ld | %ld\n", *(line_starts), *(line_starts+1), *(line_starts+2));
+    if(option==0){
+        for(int i = 0; i < listct; i++){
+            printf("%s: ", *(list+i));
+            line_reader(*(list+i), *(line_starts+i));
+            printf("\n");
+        }
+    }
+    else if(option==1){
+        printf("%d\n", count);
+    }
+    else if(option==2){
+        for(int i = 0; i < listct; i++)printf(" %s ", *(list+i));
+        printf("\n");
+    }
+}
+
+void arman_cat()
+{
+    char *str = (char*)calloc(1000, sizeof(char)), c;
+    char *address = (char*)calloc(1000, sizeof(char)), *buffer = (char*)calloc(5000, sizeof(char));
+    scanf("%c", &c);
+    scanf("%s", str);
+    if(strcmp(str, "--file")){
+        gets(str);
+        printf("Invalid input");
+    }
+    long int i = 0;
+    scanf("%c", &c);
+    scanf("%c", &c);
+    if(c != '"'){
+        int f = 1;
+        str[0] = c;
+        scanf("%c", &c);
+        while( (c != '\n') && (c != ' ') ){
+            str[f] = c;
+            f++;
+            scanf("%c", &c);
+        }
+        str[f] = '\0';
+    }
+    else{
+        while(1){
+            scanf("%c", &str[i]);
+            if((str[i] == '"') && (str[i-1] != '\\'))
+                break;
+            i++;
+        }
+        str[i] = '\0';
+        scanf("%c", &c);
+    }
+    address = text_generator(str);
+    i = 0;
+    FILE* fp = NULL;
+    fp = fopen(address, "rb+");
+    if(fp==NULL){
+        gets(str);
+        printf("The directory you entered does not exist.\nTry creating it using <createfile> command.\n\n");
+        return;
+    }
+    c = fgetc(fp);
+    while(c != EOF){
+        buffer[i] = c;
+        c = fgetc(fp);
+        i++;
+    }
+    buffer[i] = '\0';
+    scanf("%s", str);
+    if(!strcmp(str, "insertstr"))
+        arman_insert(buffer);
+    else if(!strcmp(str, "replace"))
+        arman_replace(buffer);
+    else if(!strcmp(str, "find"))
+        arman_find_input(buffer);
+    else if(!strcmp(str, "grep"))
+        arman_grep_input(buffer);
+}
+
+void arman_find_output()
+{
+    star = -1;
+    long int* find_all(FILE *fp, char* text, int starpos, int word);
+    long int find_at(FILE *fp, char* dtext, int place, int starpos, int word);
+    int find_count(FILE *fp, char* dtext, int starpos);
+    char c;
+    char *str, *s, *address, *text = (char*)calloc(200, sizeof(char));
+    address = (char*)calloc(500, sizeof(char));
+    str = (char*)calloc(150, sizeof(char));
+    s = (char*)calloc(150, sizeof(char));
+    int all = 0, at = 0, byword = 0, count = 0, at_num = 0, counter = 0;
+    long int *results = (long int*)calloc(500, sizeof(long int)), places = -1;
+
+    while(counter <= 2){
+        scanf("%c", &c);
+        scanf("%s", s);
+        if(!strcmp(s, "-count"))
+            count = 1;
+        else if(!strcmp(s, "-at")){
+            scanf("%d", &at_num);
+            at = 1;}
+        else if(!strcmp(s, "-byword"))
+            byword = 1;
+        else if(!strcmp(s, "-all"))
+            all = 1;
+        else if(!strcmp(s, "--file")){
+            counter = 4;
+            break;
+        }
+        else{
+            printf("Invalid input.\n");
+            gets(str);
+            return;
+        }
+        counter++;
+    }
+
+    if(counter <= 3){
+        scanf("%c", &c);
+        scanf("%s", s);
+        if(strcasecmp(s, "--file")){
+            gets(s);
+            printf("Invalid input.\n");
+            return;
+        }
+    }
+    counter = 0;
+    long int i = 0;
+    scanf("%c", &c);
+    scanf("%c", &c);
+    if(c != '"'){
+        int f = 1;
+        str[0] = c;
+        scanf("%c", &c);
+        while( (c != '\n') && (c != ' ') ){
+            str[f] = c;
+            f++;
+            scanf("%c", &c);
+        }
+        str[f] = '\0';
+    }
+    else{
+        while(1){
+            scanf("%c", &str[i]);
+            if((str[i] == '"') && (str[i-1] != '\\'))
+                break;
+            i++;
+        }
+        str[i] = '\0';
+    }
+    strcpy(address, str);
+    i = 0;
+
+    scanf("%s", s);
+    if(strcasecmp(s, "--str")){
+        gets(s);
+        printf("Invalid input.\n");
+        return;
+    }
+    scanf("%c", &c);
+    scanf("%c", &c);
+    if(c != '"'){
+        int f = 1;
+        str[0] = c;
+        scanf("%c", &c);
+        while(c != '\n' && c!=' '){
+            str[f] = c;
+            f++;
+            scanf("%c", &c);
+        }
+        str[f] = '\0';
+    }
+    else{
+        while(1){
+            scanf("%c", &str[i]);
+            if((str[i] == '"') && (str[i-1] != '\\'))
+                break;
+            i++;
+        }
+        str[i] = '\0';
+    }
+    text = text_generator(str);
+    //printf("%s\n", text);
+    //printf("STAR: %d\n", star);
+    i = 0;
+
+    FILE* fp = NULL;
+    fp = fopen(address, "r");
+    if(fp==NULL){
+        gets(str);
+        printf("The directory you entered does not exist.\nTry creating it using <createfile> command.\n\n");
+        return;
+    }
+    char *next = (char*)calloc(200, sizeof(char));
+    char *strized = (char*)calloc(300, sizeof(char));
+    if( (count == 1) && (at==0) && (byword==0) && (all==0)){
+        counter = find_count(fp, text, star);
+        sprintf(strized, "%d", counter);
+        //printf("Number of occurrence: %d\n str: %s\n", counter, strized);
+        star = -1;
+    }
+    else if( (count == 0) && (at==0) && (all==1)){
+        results = find_all(fp, text, star, byword);
+        int cunt = 0;
+        while(*(results+cunt) != -1){
+            char *tmp = (char*)calloc(200, sizeof(char));
+            //printf(" %ld", *(results+cunt));
+            //printf("%ld\n", *(results+cunt));
+            sprintf(tmp, "%ld", *(results+cunt));
+            //printf("=%s\n", tmp);
+            strcat(strized, tmp);
+            strcat(strized, " ");
+            cunt++;
+            free(tmp);
+        }
+        printf("\n");
+    }
+    else if( (count == 0) && (at==1) && (all==0)){
+        places = find_at(fp, text, at_num, star, byword);
+        //printf("%ld\n", places);
+        sprintf(strized, "%ld", places);
+    }
+    else if( (count == 0) && (at==0) && (all==0)){
+        places = find_at(fp, text, 1, star, byword);
+        sprintf(strized, "%ld", places);
+    }
+    star = -1;
+    scanf("%s", next);
+    if(!strcmp(next, "insertstr"))
+        arman_insert(strized);
+    else if(!strcmp(next, "replace"))
+        arman_replace(strized);
+    else if(!strcmp(next, "find"))
+        arman_find_input(strized);
+    else if(!strcmp(next, "grep"))
+        arman_grep_input(strized);
+}
+
+void arman_grep_output()
+{
+    char* arman_line_reader(char* address, long int location);
+    void line_reader(char* address, long int location);
+    long int* grep_finder(char* location, char* rtext);
+    int grep_finder_c(char* location, char* rtext);
+    int grep_finder_l(char* location, char* rtext);
+    char c;
+    char *str, *s, *address, *text;
+    address = (char*)calloc(500, sizeof(char));
+    str = (char*)calloc(150, sizeof(char));
+    s = (char*)calloc(150, sizeof(char));
+    text = (char*)calloc(200, sizeof(char));
+    char** list = (char**)calloc(100, sizeof(char*));
+    long int* line_starts = (long int*)calloc(100, sizeof(int)),*lines = (long int*)calloc(100, sizeof(int)) ;
+    for(int i = 0; i < 100; i++) *(list+i) = (char*)calloc(100, sizeof(char));
+
+    int option = 0, count = 0, listct = 0;
+    long int i = 0;
+    scanf("%s", s);
+    if(!strcmp(s, "-c")){
+        option = 1;
+        scanf("%s", s);
+        if(strcasecmp(s, "--str")){
+            gets(s);
+            printf("Invalid input.\n");
+            return;
+        }
+    }
+    else if(!strcmp(s, "-l")){
+        option = 2;
+        scanf("%c", &c);
+        scanf("%s", s);
+        if(strcasecmp(s, "--str")){
+            gets(s);
+            printf("Invalid input.\n");
+            return;
+        }
+    }
+    else if(strcasecmp(s, "--str")){
+        gets(s);
+        printf("Invalid input.\n");
+        return;
+    }
+    scanf("%c", &c);
+    scanf("%c", &c);
+    if(c != '"'){
+        int f = 1;
+        str[0] = c;
+        scanf("%c", &c);
+        while( (c != '\n') && (c != ' ') ){
+            str[f] = c;
+            f++;
+            scanf("%c", &c);
+        }
+        str[f] = '\0';
+    }
+    else{
+        while(1){
+            scanf("%c", &str[i]);
+            if((str[i] == '"') && (str[i-1] != '\\'))
+                break;
+            i++;
+        }
+        str[i] = '\0';
+    }
+    text = text_generator(str);
+    i = 0;
+    scanf("%c", &c);
+    scanf("%s", s);
+    if(strcasecmp(s, "--file")){
+        gets(s);
+        printf("Invalid input.\n");
+        return;
+    }
+    scanf("%c", &c);
+    while(c != '>'){
+        //scanf("%c", &c);
+        //if(c=='\n')
+            //break;
+        scanf("%c", &c);
+        if(c=='>')
+            break;
+        if(c != '"'){
+            int f = 1;
+            str[0] = c;
+            scanf("%c", &c);
+            while( (c != '\n') && (c != ' ') ){
+                str[f] = c;
+                f++;
+                scanf("%c", &c);
+            }
+            str[f] = '\0';
+        }
+        else{
+            while(1){
+                scanf("%c", &str[i]);
+                if((str[i] == '"') && (str[i-1] != '\\'))
+                    break;
+                i++;
+            }
+            str[i] = '\0';
+            scanf("%c", &c);
+        }
+        strcpy(address, str);
+        //printf("%s\n", address);
+        i = 0;
+        if(option == 0){
+            lines = grep_finder(address, text);
+            int j = 0;
+            while(*(lines+j)!=-1){
+                strcpy(*(list+listct), address);
+                *(line_starts+listct) = *(lines+j);
+                listct++;
+                j++;
+            }
+        }
+        else if(option == 1)
+            count += grep_finder_c(address, text);
+        else if(option == 2){
+            if(grep_finder_l(address, text)){
+                strcpy(*(list+listct), address);
+                listct++;
+            }
+        }
+        free(str);
+        str = (char*)calloc(200, sizeof(char));
+    }
+    //printf("%s | %s | %s\n", *(list), *(list+1), *(list+2));
+    //printf("%ld | %ld | %ld\n", *(line_starts), *(line_starts+1), *(line_starts+2));
+    char *finale = (char*)calloc(3000, sizeof(char));
+    if(option==0){
+        for(int i = 0; i < listct; i++){
+            //printf("%s: ", *(list+i));
+            //line_reader(*(list+i), *(line_starts+i));
+            //printf("\n");
+            strcat(finale, *(list+i));
+            strcat(finale, ": ");
+            strcat(finale, arman_line_reader(*(list+i), *(line_starts+i)) );
+            strcat(finale, "\n");
+        }
+    }
+    else if(option==1){
+        sprintf(finale, "%d", count);
+    }
+    else if(option==2){
+        for(int i = 0; i < listct; i++)strcat(finale, *(list+i));
+    }
+    //printf("%s\n", finale);
+    scanf("%c", &c);
+    scanf("%s", str);
+    if(!strcmp(str, "insertstr"))
+        arman_insert(finale);
+    else if(!strcmp(str, "replace"))
+        arman_replace(finale);
+    else if(!strcmp(str, "find"))
+        arman_find_input(finale);
+    else if(!strcmp(str, "grep"))
+        arman_grep_input(finale);
+}
+
+void arman_compare()
+{
+    char *finale = (char*)calloc(5000, sizeof(char)), *strized = (char*)calloc(500, sizeof(char));
+    long int* comparing(char* address1, char* address2);
+    long int* results = (long int*)calloc(200, sizeof(long int));
+    char *str = (char*)calloc(150, sizeof(char)), c;
+    char *address1 = (char*)calloc(150, sizeof(char)), *address2 = (char*)calloc(150, sizeof(char));
+    long int i = 0;
+    scanf("%c", &c);
+    scanf("%c", &c);
+    if(c != '"'){
+        int f = 1;
+        str[0] = c;
+        scanf("%c", &c);
+        while( (c != '\n') && (c != ' ') ){
+            str[f] = c;
+            f++;
+            scanf("%c", &c);
+        }
+        str[f] = '\0';
+    }
+    else{
+        while(1){
+            scanf("%c", &str[i]);
+            if((str[i] == '"') && (str[i-1] != '\\'))
+                break;
+            i++;
+        }
+        str[i] = '\0';
+        scanf("%c", &c);
+    }
+    strcpy(address1, str);
+    //printf("ADDRESS1: |%s|\n", address1);
+    i = 0;
+    scanf("%c", &c);
+    if(c != '"'){
+        int f = 1;
+        str[0] = c;
+        scanf("%c", &c);
+        while( (c != '\n') && (c != ' ') ){
+            str[f] = c;
+            f++;
+            scanf("%c", &c);
+        }
+        str[f] = '\0';
+    }
+    else{
+        while(1){
+            scanf("%c", &str[i]);
+            if((str[i] == '"') && (str[i-1] != '\\'))
+                break;
+            i++;
+        }
+        str[i] = '\0';
+        scanf("%c", &c);
+    }
+    strcpy(address2,str);
+    //printf("ADDRESS2: |%s|\n", address2);
+    i = 0;
+    results = comparing(address1, address2);
+    FILE *fp1 = fopen(address1, "r");
+    FILE *fp2 = fopen(address2, "r");
+    while(*(results+i) != -1){
+        fseek(fp1, 0, SEEK_SET);
+        fseek(fp2, 0, SEEK_SET);
+        int linect = 1, id = 0;
+        char* line1 = (char*)calloc(400, sizeof(char)), *line2 = (char*)calloc(400, sizeof(char));
+        while(1){
+            c= fgetc(fp1);
+            if(c=='\n')
+                linect++;
+            if(linect==*(results+i)){
+                long int j = 0;
+                while(1){
+                    c = fgetc(fp1);
+                    if(c=='\n' || c==EOF){
+                        id = 1;
+                        break;
+                    }
+                    line1[j] = c;
+                    j++;
+                }
+                line1[j] = '\0';
+                break;
+            }
+            if(id==1)
+                break;
+        }
+        linect = 1;
+        while(1){
+            c= fgetc(fp2);
+            if(c=='\n')
+                linect++;
+            if(linect==*(results+i)){
+                long int j = 0;
+                while(1){
+                    c = fgetc(fp2);
+                    if(c=='\n' || c==EOF)
+                        break;
+                    line2[j] = c;
+                    j++;
+                }
+                line2[j] = '\0';
+                break;
+            }
+        }
+        //printf("========== Line: %ld ==========\n", *(results+i));
+        //printf("File 1: %s\n", line1);
+        //printf("File 2: %s\n", line2);
+        sprintf(strized, "%ld", *(results+i));
+        strcat(finale, "========== Line:");
+        strcat(finale, strized);
+        strcat(finale, "==========\nFile 1: ");
+        strcat(finale, line1);
+        strcat(finale, "\nFile 2: ");
+        strcat(finale, line2);
+        strcat(finale, "\n");
+        free(line1);
+        free(line2);
+        i++;
+    }
+    i++;
+    FILE *fp = NULL;
+    if(*(results+i)==1)
+        fp = fopen(address1, "r");
+    else if(*(results+i)==2)
+        fp = fopen(address2, "r");
+    else
+        return;
+    int line_end = 1;
+    while(1){
+        c = fgetc(fp);
+        if(c=='\n')
+            line_end++;
+        if(c==EOF)
+            break;
+    }
+    fseek(fp, 0, SEEK_SET);
+    char* buffer = (char*)calloc(300, sizeof(char));
+    int linect = 1;
+    while(1){
+        c = fgetc(fp);
+        if(c=='\n')
+            linect++;
+        if(linect==*(results+i+1)){
+            long int j = 0;
+            while(1){
+                c = fgetc(fp);
+                if(c==EOF)
+                    break;
+                buffer[j] = c;
+                j++;
+            }
+            buffer[j] = '\0';
+            break;
+        }
+        if(c==EOF)
+            return;
+    }
+    //printf(">>>>>>>>>> File: %ld | Start: %ld | End: %d >>>>>>>>>>\n", *(results+i), *(results+i+1), line_end);
+    //printf("File %ld: %s\n", *(results+i), buffer);
+    strcat(finale, ">>>>>>>>>> File: ");
+    if(*(results+i)==1)
+        strcat(finale, "1 | Start: ");
+    else
+        strcat(finale, "2 | Start: ");
+    char *end = (char*)calloc(200, sizeof(char)), *start = (char*)calloc(200, sizeof(char));
+    sprintf(start, "%ld", *(results+i+1));
+    sprintf(end, "%d", line_end);
+    strcat(finale, start);
+    strcat(finale, " | End: ");
+    strcat(finale, end);
+    strcat(finale, " >>>>>>>>>>\nFile ");
+    if(*(results+i)==1)
+        strcat(finale, "1: ");
+    else
+        strcat(finale, "2: ");
+    strcat(finale, buffer);
+    scanf("%s", str);
+    if(!strcmp(str, "insertstr"))
+        arman_insert(finale);
+    else if(!strcmp(str, "replace"))
+        arman_replace(finale);
+    else if(!strcmp(str, "find"))
+        arman_find_input(finale);
+    else if(!strcmp(str, "grep"))
+        arman_grep_input(finale);
+}
+
+void arman_tree()
+{
+    char *str = (char*)calloc(200, sizeof(char)),*svr = (char*)calloc(2000, sizeof(char)), c;
+    scanf("%d", &reccur);
+    char* arman_filelist(char* directory, int indentnum, int counter, char *sv);
+    svr = arman_filelist(".", 4, 1, svr);
+    //printf("%s\n", svr);
+    scanf("%c", &c);
+    scanf("%s", str);
+    if(!strcmp(str, "insertstr"))
+        arman_insert(svr);
+    else if(!strcmp(str, "replace"))
+        arman_replace(svr);
+    else if(!strcmp(str, "find"))
+        arman_find_input(svr);
+    else if(!strcmp(str, "grep"))
+        arman_grep_input(svr);
+    //free(bush);
+    reccur = 0;
+}
+
+void arman()
+{
+    char *str = (char*)calloc(100, sizeof(char));
+    scanf("%s", str);
+    if(!strcmp(str, "cat"))
+        arman_cat();
+    else if(!strcmp(str, "find"))
+        arman_find_output();
+    else if(!strcmp(str, "grep"))
+        arman_grep_output();
+    else if(!strcmp(str, "compare"))
+        arman_compare();
+    else if(!strcmp(str, "tree"))
+        arman_tree();
+    else{
+        gets(str);
+        printf("Invalid input");
     }
 }
 
@@ -1619,9 +2921,11 @@ char* text_generator(char* atext)
                 i+=2;
             }
             else if(atext[i+1] == '*'){
+                //printf("i: %d", i);
                 buffer[j] = '*';
                 j++;
                 i+=2;
+                //printf("new i: %d", i);
             }
             else{
                 buffer[j] = atext[i];
@@ -1632,7 +2936,7 @@ char* text_generator(char* atext)
         }
         if(atext[i]=='*'){
             star = i;
-            printf("%ld\n", i);
+            //printf("FUCCK\n", i);
         }
         buffer[j] = atext[i];
         i++;
@@ -1646,27 +2950,30 @@ char* text_generator(char* atext)
 //////    grep functions   //////
 /////////////////////////////////
 
-void grep_finder(char* location, char* rtext)
+long int* grep_finder(char* location, char* rtext)
 {
     char c;
+    long int *lines = (long int*)calloc(100, sizeof(long int));
+    int ct = 0;
     FILE *fp = NULL;
     fp = fopen(location, "rb+");
     if(fp == NULL){
-        printf("HHH\n");
-        return;
+        return NULL;
     }
     fseek(fp, 0L, SEEK_END);
     long int len = strlen(rtext);
     long int end = ftell(fp);
     char* buffer = (char*)malloc(len);
     fseek(fp, 0L, SEEK_SET);
-    long int line_start = 0, line_end = 0;
+    long int line_start = 0;
 
     for(long int i = 0; i < end; i++){
         int j = 0;
         fseek(fp, i, SEEK_SET);
-        if(fgetc(fp)=='\n')
+        if(fgetc(fp)=='\n'){
             line_start = ftell(fp);
+            //printf("new: %ld\n", line_start);
+        }
         fseek(fp, i, SEEK_SET);
         for(j = 0; j < len; j++){
             c = fgetc(fp);
@@ -1674,21 +2981,18 @@ void grep_finder(char* location, char* rtext)
         }
         buffer[j] = '\0';
         if(!strcmp(buffer, rtext)){
-          printf("%s: ", location);
-          while(1){
-            c = fgetc(fp);
-            if( c == '\n' || c == EOF){
-                line_end = ftell(fp);
-                break;
-            }
-          }
-          fseek(fp, line_start, SEEK_SET);
-          while(ftell(fp) < line_end)
-            printf("%c", fgetc(fp));
-          i = line_end;
+          *(lines+ct) = line_start;
+          ct++;
+          c = fgetc(fp);
+          while(c != '\n' && c != EOF)
+              c = fgetc(fp);
+          if(c==EOF)
+            break;
+          i = ftell(fp)-2;
         }
     }
-    printf("\n");
+    *(lines+ct) = -1;
+    return lines;
 }
 
 int grep_finder_c(char* location, char* rtext)
@@ -1698,7 +3002,7 @@ int grep_finder_c(char* location, char* rtext)
     FILE *fp = NULL;
     fp = fopen(location, "rb+");
     if(fp == NULL){
-        printf("HHH\n");
+        //printf("HHH\n");
         return line_counter;
     }
     fseek(fp, 0L, SEEK_END);
@@ -1733,14 +3037,13 @@ int grep_finder_c(char* location, char* rtext)
     return line_counter;
 }
 
-void grep_finder_l(char* location, char* rtext)
+int grep_finder_l(char* location, char* rtext)
 {
     char c;
     FILE *fp = NULL;
     fp = fopen(location, "rb+");
     if(fp == NULL){
-        printf("HHH\n");
-        return;
+        return 0;
     }
     fseek(fp, 0L, SEEK_END);
     long int len = strlen(rtext);
@@ -1757,12 +3060,41 @@ void grep_finder_l(char* location, char* rtext)
         }
         buffer[j] = '\0';
         if(!strcmp(buffer, rtext)){
-          printf("%s ", location);
+          return 1;
           fclose(fp);
           free(buffer);
-          return;
         }
     }
+    return 0;
+}
+
+void line_reader(char* address, long int location)
+{
+    FILE *fp = fopen(address, "rb");
+    fseek(fp, location, SEEK_SET);
+    char c = fgetc(fp);
+    while(c!='\n' && c!=EOF){
+        printf("%c", c);
+        c = fgetc(fp);
+    }
+    fclose(fp);
+}
+
+char* arman_line_reader(char* address, long int location)
+{
+    FILE *fp = fopen(address, "rb");
+    char* buffer = (char*)calloc(3000, sizeof(char));
+    int i = 0;
+    fseek(fp, location, SEEK_SET);
+    char c = fgetc(fp);
+    while(c!='\n' && c!=EOF){
+        buffer[i] = c;
+        c = fgetc(fp);
+        i++;
+    }
+    buffer[i] ='\0';
+    fclose(fp);
+    return buffer;
 }
 
 void previous_saver(char* location, char* rtext)
@@ -1772,6 +3104,7 @@ void previous_saver(char* location, char* rtext)
     char* str_ = (char*)calloc(200, sizeof(char));
 
     int i = 0;
+    long int j= 0;
 
     while(1){
         if(def[i]=='\\'){
@@ -1786,7 +3119,14 @@ void previous_saver(char* location, char* rtext)
     }
 
     FILE *fp = fopen(def, "wb+");
-    fputs(rtext, fp);
+    if(fp==NULL){
+        printf("Crashed\n");
+        return;
+    }
+    while(rtext[j] != '\0'){
+        fputc(rtext[j], fp);
+        j++;
+    }
     fclose(fp);
 }
 
@@ -1944,7 +3284,7 @@ int find_count(FILE *fp, char* dtext, int starpos)
     char* noast = (char*)calloc(200, sizeof(char));
     fseek(fp, -len, SEEK_END);
     long int end = ftell(fp);
-    if(dtext[0]=='*'){
+    if(0==starpos){
         long int ct = 0;
         while(1){
             noast[ct] = dtext[ct+1];
@@ -1978,7 +3318,13 @@ int find_count(FILE *fp, char* dtext, int starpos)
                             i = ftell(fp);
                             break;
                         }
+                        if(c==EOF){
+                            id = 1;
+                            break;
+                        }
                     }
+                    if(id==1)
+                        break;
                 }
             }
         }
@@ -1986,10 +3332,13 @@ int find_count(FILE *fp, char* dtext, int starpos)
         free(noast);
         return counter;
     }
-    else if(dtext[len-1]=='*'){
+    else if(len-1==starpos){
+        //printf("HERE\n");
+        //printf("%ld\n", len);
         int i = 0;
         for(; i < len-1; i++) noast[i] = dtext[i];
         noast[i] = '\0';
+        //printf("%s\n", noast);
         for(long int i = 0; i < end; i++){
             int j = 0, id = 0;
             fseek(fp, i, SEEK_SET);
@@ -2001,12 +3350,13 @@ int find_count(FILE *fp, char* dtext, int starpos)
                 }
                 buffer[j] = c;
             }
+            if(id==1)
+                break;
             buffer[j] = '\0';
             char after = fgetc(fp);
             //printf("buffer:|%s|\n", buffer);
-            if(id==1)
-                break;
             if(!strcmp(buffer, noast)){
+                //printf("H\n");
                 if( (after!= ' ') && (after!= '\n') ){
                     counter++;
                     while(1){
@@ -2015,7 +3365,13 @@ int find_count(FILE *fp, char* dtext, int starpos)
                             i = ftell(fp);
                             break;
                         }
+                        if(c==EOF){
+                            id = 1;
+                            break;
+                        }
                     }
+                    if(id==1)
+                        break;
                 }
             }
         }
@@ -2134,7 +3490,7 @@ long int* find_all(FILE *fp, char* dtext, int starpos, int word)
     char* noast = (char*)calloc(200, sizeof(char));
     fseek(fp, 0L, SEEK_END);
     long int end = ftell(fp);
-    if(dtext[0]=='*'){
+    if(0==starpos){
         long int ct = 0;
         while(1){
             noast[ct] = dtext[ct+1];
@@ -2187,14 +3543,20 @@ long int* find_all(FILE *fp, char* dtext, int starpos, int word)
                             i = ftell(fp);
                             break;
                         }
+                        if(c==EOF){
+                            id = 1;
+                            break;
+                        }
                     }
+                    if(id==1)
+                        break;
                 }
             }
         }
         free(buffer);
         free(noast);
     }
-    else if(dtext[len-1]=='*'){
+    else if(len-1==starpos){
         int i = 0, wordct = 1;
         char c_ = '\0';
         for(; i < len-1; i++) noast[i] = dtext[i];
@@ -2242,7 +3604,13 @@ long int* find_all(FILE *fp, char* dtext, int starpos, int word)
                             i = ftell(fp);
                             break;
                         }
+                        if(c==EOF){
+                            id = 1;
+                            break;
+                        }
                     }
+                    if(id==1)
+                        break;
                 }
             }
         }
@@ -2380,6 +3748,21 @@ long int* find_all(FILE *fp, char* dtext, int starpos, int word)
                 *(answers+answersct) = i;
             wordct = 1;
             answersct++;
+            if(word==1){
+                while(1){
+                    c = fgetc(fp);
+                    if(c==' '){
+                        i = ftell(fp);
+                        break;
+                    }
+                    if(c==EOF){
+                        id = 1;
+                        break;
+                    }
+                }
+                if(id==1)
+                    break;
+            }
         }
         }
         free(buffer);
@@ -2390,6 +3773,7 @@ long int* find_all(FILE *fp, char* dtext, int starpos, int word)
 
 long int find_at(FILE *fp, char* dtext, int place, int starpos, int word)
 {
+    //printf("Star: %d\n", starpos);
     char c , c_ = '\0';
     int counter = 0;
     long int len = strlen(dtext);
@@ -2397,7 +3781,7 @@ long int find_at(FILE *fp, char* dtext, int place, int starpos, int word)
     char* noast = (char*)calloc(200, sizeof(char));
     fseek(fp, 0L, SEEK_END);
     long int end = ftell(fp);
-    if(dtext[0]=='*'){
+    if(0==starpos){
         long int ct = 0;
         while(1){
             noast[ct] = dtext[ct+1];
@@ -2452,14 +3836,20 @@ long int find_at(FILE *fp, char* dtext, int place, int starpos, int word)
                             i = ftell(fp);
                             break;
                         }
+                        if(c==EOF){
+                            id = 1;
+                            break;
+                        }
                     }
+                    if(id==1)
+                        break;
                 }
             }
         }
         free(buffer);
         free(noast);
     }
-    else if(dtext[len-1]=='*'){
+    else if(len-1==starpos){
         int i = 0, wordct = 1;
         char c_ = '\0';
         for(; i < len-1; i++) noast[i] = dtext[i];
@@ -2509,7 +3899,13 @@ long int find_at(FILE *fp, char* dtext, int place, int starpos, int word)
                             i = ftell(fp);
                             break;
                         }
+                        if(c==EOF){
+                            id = 1;
+                            break;
+                        }
                     }
+                    if(id==1)
+                        break;
                 }
             }
         }
@@ -2533,6 +3929,7 @@ long int find_at(FILE *fp, char* dtext, int place, int starpos, int word)
             k++;
             i++;
         }
+        noast2[i] = '\0';
         //printf("Noast1: %s\n\nNoast2: %s\n\n", noast1, noast2);
         int len1 = strlen(noast1), len2 = strlen(noast2);
         char* buffer1 = (char*)calloc(len1, sizeof(char)), *buffer2 = (char*)calloc(len2, sizeof(char));
@@ -2552,6 +3949,7 @@ long int find_at(FILE *fp, char* dtext, int place, int starpos, int word)
             if(id==1)
                 break;
             if(!strcmp(buffer1, noast1)){
+                //printf("buf1 found: %ld\n", i);
                 long int m = ftell(fp)+1L;
                 long int start = m;
                 for(; m < end; m++){
@@ -2560,7 +3958,6 @@ long int find_at(FILE *fp, char* dtext, int place, int starpos, int word)
                     for(n = 0; n < len2; n++){
                         c = fgetc(fp);
                         if(c==EOF){
-                            id = 1;
                             break;
                         }
                         buffer2[n] = c;
@@ -2570,11 +3967,14 @@ long int find_at(FILE *fp, char* dtext, int place, int starpos, int word)
                 if(id==1)
                     break;
                 if(!strcmp(buffer2, noast2)){
+                        //printf("buf1 found: %ld\n", m);
                         fseek(fp, start, SEEK_SET);
                         int nos = 0;
                         for(long int h = start; h < m; h++){
+                            fseek(fp, h, SEEK_SET);
                             c = fgetc(fp);
                             if((c==' ')||(c=='\n')){
+                                //printf("No\n");
                                 nos = 1;
                                 break;
                             }
@@ -2604,8 +4004,6 @@ long int find_at(FILE *fp, char* dtext, int place, int starpos, int word)
                         }
                     }
                 }
-            if(id==1)
-                break;
             }
         }
     free(noast1);
@@ -2784,7 +4182,7 @@ long int find_at2(FILE *fp, char* dtext, int place, int starpos, int word)
     char* noast = (char*)calloc(200, sizeof(char));
     fseek(fp, 0L, SEEK_END);
     long int end = ftell(fp);
-    if(dtext[0]=='*'){
+    if(0==starpos){
         long int ct = 0;
         while(1){
             noast[ct] = dtext[ct+1];
@@ -2837,14 +4235,20 @@ long int find_at2(FILE *fp, char* dtext, int place, int starpos, int word)
                             i = ftell(fp);
                             break;
                         }
+                        if(c==EOF){
+                            id = 1;
+                            break;
+                        }
                     }
+                    if(id==1)
+                        break;
                 }
             }
         }
         free(buffer);
         free(noast);
     }
-    else if(dtext[len-1]=='*'){
+    else if(len-1==starpos){
         int i = 0, wordct = 1;
         char c_ = '\0';
         for(; i < len-1; i++) noast[i] = dtext[i];
@@ -2871,8 +4275,12 @@ long int find_at2(FILE *fp, char* dtext, int place, int starpos, int word)
                     fseek(fp, text_ending, SEEK_SET);
                     while(1){
                         c = fgetc(fp);
-                        if( (c==' ') || (c=='\n') || (c==EOF)){
+                        if( (c==' ') || (c=='\n')){
                             ending = ftell(fp)-1;
+                            break;
+                        }
+                        else if(c==EOF){
+                            ending = ftell(fp);
                             break;
                         }
                     }
@@ -2903,7 +4311,13 @@ long int find_at2(FILE *fp, char* dtext, int place, int starpos, int word)
                             i = ftell(fp);
                             break;
                         }
+                        if(c==EOF){
+                            id = 1;
+                            break;
+                        }
                     }
+                    if(id==1)
+                        break;
                 }
             }
         }
@@ -2954,7 +4368,7 @@ long int find_at2(FILE *fp, char* dtext, int place, int starpos, int word)
                     for(n = 0; n < len2; n++){
                         c = fgetc(fp);
                         if(c==EOF){
-                            id = 1;
+
                             break;
                         }
                         buffer2[n] = c;
@@ -3014,6 +4428,7 @@ long int find_at2(FILE *fp, char* dtext, int place, int starpos, int word)
         for(j = 0; j < len; j++){
             c = fgetc(fp);
             if(c==EOF){
+                i++;
                 id = 1;
                 break;
             }
@@ -3062,7 +4477,7 @@ long int* find_all2(FILE *fp, char* dtext, int starpos, int word)
     char* noast = (char*)calloc(200, sizeof(char));
     fseek(fp, 0L, SEEK_END);
     long int end = ftell(fp);
-    if(dtext[0]=='*'){
+    if(0==starpos){
         long int ct = 0;
         while(1){
             noast[ct] = dtext[ct+1];
@@ -3078,6 +4493,7 @@ long int* find_all2(FILE *fp, char* dtext, int starpos, int word)
             for(j = 0; j < len-1; j++){
                 c = fgetc(fp);
                 if(c==EOF){
+                    i++;
                     id = 1;
                     break;
                 }
@@ -3111,14 +4527,21 @@ long int* find_all2(FILE *fp, char* dtext, int starpos, int word)
                             i = ftell(fp);
                             break;
                         }
+                        if(c==EOF){
+                            i++;
+                            id = 1;
+                            break;
+                        }
                     }
+                    if(id==1)
+                        break;
                 }
             }
         }
         free(buffer);
         free(noast);
     }
-    else if(dtext[len-1]=='*'){
+    else if(len-1==starpos){
         int i = 0, wordct = 1;
         char c_ = '\0';
         for(; i < len-1; i++) noast[i] = dtext[i];
@@ -3129,6 +4552,7 @@ long int* find_all2(FILE *fp, char* dtext, int starpos, int word)
             for(j = 0; j < len-1; j++){
                 c = fgetc(fp);
                 if(c==EOF){
+                    i++;
                     id = 1;
                     break;
                 }
@@ -3145,8 +4569,12 @@ long int* find_all2(FILE *fp, char* dtext, int starpos, int word)
                     fseek(fp, text_ending, SEEK_SET);
                     while(1){
                         c = fgetc(fp);
-                        if( (c==' ') || (c=='\n') || (c==EOF)){
+                        if( (c==' ') || (c=='\n')){
                             ending = ftell(fp)-1;
+                            break;
+                        }
+                        else if(c==EOF){
+                            ending = ftell(fp);
                             break;
                         }
                     }
@@ -3175,7 +4603,14 @@ long int* find_all2(FILE *fp, char* dtext, int starpos, int word)
                             i = ftell(fp);
                             break;
                         }
+                        if(c==EOF){
+                            i++;
+                            id = 1;
+                            break;
+                        }
                     }
+                    if(id==1)
+                        break;
                 }
             }
         }
@@ -3226,7 +4661,7 @@ long int* find_all2(FILE *fp, char* dtext, int starpos, int word)
                     for(n = 0; n < len2; n++){
                         c = fgetc(fp);
                         if(c==EOF){
-                            id = 1;
+                            m++;
                             break;
                         }
                         buffer2[n] = c;
@@ -3284,6 +4719,7 @@ long int* find_all2(FILE *fp, char* dtext, int starpos, int word)
         for(j = 0; j < len; j++){
             c = fgetc(fp);
             if(c==EOF){
+                i++;
                 id = 1;
                 break;
             }
@@ -3336,7 +4772,7 @@ long int* comparing(char* address1, char* address2)
         c1 = fgetc(fp1);
         c2 = fgetc(fp2);
         if(c2 != c1){
-            printf("%ld : %c | %ld : %c\n", ftell(fp1), c1, ftell(fp2), c2);
+            //printf("%ld : %c | %ld : %c\n", ftell(fp1), c1, ftell(fp2), c2);
             *(check+ct) = linect;
             ct++;
             int id = 0;
@@ -3423,13 +4859,17 @@ long int* comparing(char* address1, char* address2)
 
 void filelist(char* directory, int indentnum, int counter)
 {
-    if(counter>reccur)
+    //printf("+++++COUNTER: %d+++++\n", counter);
+    if(counter>reccur){
+        //printf("Not This One\n");
         return;
+    }
     DIR *d;
     struct dirent *dir;
     struct stat *statbuf;
     statbuf = (struct stat*)malloc(sizeof(struct stat));
-    d = opendir(directory);
+    chdir(directory);
+    d = opendir(".");
     if (d) {
         while ((dir = readdir(d)) != NULL) {
             stat(dir->d_name, statbuf);
@@ -3437,10 +4877,44 @@ void filelist(char* directory, int indentnum, int counter)
             if( (strcmp(dir->d_name, ".")) && (strcmp(dir->d_name, ".."))){
             for(int i = 0; i < indentnum; i++) printf(" ");
             printf("%s\n", dir->d_name);
-                if(type==16895)
+                if(type==16895 || type==0){
+                    //printf("New folder: %s\n", dir->d_name);
                     filelist(dir->d_name, indentnum+4, counter+1);
+                }
             }
         }
+        if(counter >= 2)
+            chdir("..");
         closedir(d);
     }
+}
+
+char* arman_filelist(char* directory, int indentnum, int counter, char* sv)
+{
+    if(counter>reccur)
+        return sv;
+    DIR *d;
+    struct dirent *dir;
+    struct stat *statbuf;
+    statbuf = (struct stat*)malloc(sizeof(struct stat));
+    chdir(directory);
+    d = opendir(".");
+    if (d) {
+        while ((dir = readdir(d)) != NULL) {
+            stat(dir->d_name, statbuf);
+            int type = statbuf->st_mode;
+            if( (strcmp(dir->d_name, ".")) && (strcmp(dir->d_name, ".."))){
+            for(int i = 0; i < indentnum; i++) strcat(sv, " ");
+            //printf("%s\n", dir->d_name);
+            strcat(sv, dir->d_name);
+            strcat(sv, "\n");
+                if(type==16895)
+                    arman_filelist(dir->d_name, indentnum+4, counter+1, sv);
+            }
+        }
+        if(counter >= 2)
+            chdir("..");
+        closedir(d);
+    }
+    return sv;
 }
