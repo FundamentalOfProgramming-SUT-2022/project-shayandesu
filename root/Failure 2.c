@@ -20,9 +20,10 @@
 
 int main();
 
-char* saver, *bush;
+char* saver, *bush, *saver_win;
 char* text_generator(char* atext);
 void previous_saver(char* location, char* rtext);
+int line_start, change_win = 0;
 
 int max_line(char *filename)
 {
@@ -37,9 +38,30 @@ int max_line(char *filename)
     return line;
 }
 
+int max_line_win(char*buffer)
+{
+    int line = 1;
+    long int i = 0, limit = 6;
+    while(buffer[i]!='\0'){
+        if(buffer[i]=='\n'){
+            line++;
+            limit = 6;
+            i++;
+        }
+        else if(limit==170){
+            line++;
+            limit = 6;
+        }
+        else{
+            limit++; i++;
+        }
+    }
+    return line;
+}
+
 int furthest_char(int line)
 {
-    for(int i = 178; i >= 6; i--){
+    for(int i = 169; i >= 6; i--){
         move(line, i);
         if((int)inch()!=32 && (int)inch()!=800){
             //int in = (int)inch();
@@ -48,7 +70,7 @@ int furthest_char(int line)
             return i;
         }
     }
-    return 200;
+    return 6;
 }
 
 void print_border()
@@ -79,13 +101,14 @@ void print_border()
     }
 }
 
-void print_line_numbers()
+void print_line_numbers(int line)
 {
+    int y = line_start;
     init_pair(1, COLOR_WHITE, COLOR_BLUE);
     attron(COLOR_PAIR(1));
-    for(int i = 1; i <= 44; i++){
+    for(int i = 1; i <= 44; i++, y++){
         move(i+1, 2);
-	    printw("%3d ", i);
+	    printw("%3d ", y);
     }
     attroff(COLOR_PAIR(1));
 }
@@ -103,7 +126,7 @@ void print_file_layout(char* mode, char* filename, int saved)
     move(45, 6+lenm+2);
     printw("%s  ", filename);
     move(45, 6+lenm+2+lenf+2);
-    if(saved==1) printw("+");
+    if(saved==0) printw("+");
     else printw("-");
     attroff(COLOR_PAIR(4));
     attron(COLOR_PAIR(1));
@@ -114,7 +137,40 @@ void print_file_layout(char* mode, char* filename, int saved)
     attroff(COLOR_PAIR(1));
 }
 
-void printfile(char* text)
+char* read_win(char* buffer, int firs_char, int last_char)
+{
+    char *nbuff = (char*)calloc(7000, sizeof(char)), c;
+    long int ct = 0;
+    /*if(firs_char != 0){
+        for(; ct <= firs_char; ct++){
+            nbuff[ct] = buffer[ct];
+        }
+        nbuff[ct] = '\n';
+        ct++;
+    }*/
+    int x = 6, y = 2;
+    for(int y = 2; y <= 44; y++){
+        int last = furthest_char(y);
+        for(int x = 6; x <= last; x++){
+            move(y, x);
+            c = inch();
+            nbuff[ct] = c;
+            ct++;
+        }
+        nbuff[ct] = '\n';
+        ct++;
+    }
+    /*nbuff[ct] = '\n';
+    ct++;
+    long int j = last_char;
+    while(buffer[j] != EOF && j != -1){
+        nbuff[ct] = buffer[j];
+    }*/
+    nbuff[ct] = '\0';
+    return nbuff;
+}
+
+long int printfile(char* text)
 {
     init_pair(5, COLOR_WHITE, COLOR_BLACK);
     //refresh();
@@ -126,12 +182,18 @@ void printfile(char* text)
     while(text[i] != '\0'){
         move(y, x);
         if(text[i]=='\n'){
+            if(y==44){
+                return i+1;
+            }
             printw("\n");
             y++; i++;
             x = 6;
             continue;
         }
         else if(x==170){
+            if(y==44){
+                return i+1;
+            }
             printw("\n");
             y++;
             x = 6;
@@ -141,23 +203,347 @@ void printfile(char* text)
         i++; x++;
     }
     attroff(COLOR_PAIR(6));
+    return -1;
 }
 
-void insert_mode(char* buffer, char* address)
+void free_cmdb()
+{
+    attron(COLOR_PAIR(6));
+    for(int i = 6; i <= 169; i++){
+        move(46, i);
+        printw(" ");
+    }
+    attroff(COLOR_PAIR(6));
+}
+
+char* move_down(char* buffer, long int *last_char, long int *first_char)
+{
+    //move(49,1);
+    //printw("Done");
+    long int j = *first_char+2;
+    while(buffer[j] != '\n') j++;
+    *first_char = j-1;
+
+    char* nbuff = (char*)calloc(30000, sizeof(char)), c;
+    long int ct = 0;
+    for(int y = 3; y <= 44; y++){
+        int last = furthest_char(y);
+        for(int x = 6; x <= last; x++){
+            move(y, x);
+            c = inch();
+            nbuff[ct] = c;
+            ct++;
+        }
+        nbuff[ct] = '\n';
+        ct++;
+    }
+    long int i = *last_char;
+    while(buffer[i] != '\n' && buffer[i] != '\0'){
+        nbuff[ct] = buffer[i];
+        ct++; i++;
+    }
+    nbuff[ct] = '\0';
+    if(buffer[i]=='\0'){
+        *last_char = -1;
+    }
+    else
+        *last_char = i+1;
+    return nbuff;
+}
+
+char* move_up(char* buffer, long int *last_char, long int *first_char)
+{
+    long int j = *last_char-2;
+    while(buffer[j]!='\n') j--;
+    *last_char = j+1;
+
+    char *nbuff = (char*)calloc(30000, sizeof(char)), c;
+    long int ct = 0, k = *first_char, i = *first_char;
+    while(buffer[i] != '\n' && i!=0){
+        i--;
+    }
+    if(i==0) *first_char = i;
+    else{
+        *first_char = i-1;
+        i++;
+    }
+
+    while(buffer[i] != '\n'){
+        nbuff[ct] = buffer[i];
+        i++; ct++;
+    }
+    nbuff[ct] = '\n';
+    ct++;
+    for(int y = 2; y <= 43; y++){
+        int last = furthest_char(y);
+        for(int x = 6; x <= last; x++){
+            move(y, x);
+            c = inch();
+            nbuff[ct] = c;
+            ct++;
+        }
+        nbuff[ct] = '\n';
+        ct++;
+    }
+    nbuff[ct] = '\0';
+    return nbuff;
+}
+
+char* indent_win(char* buffer)
+{
+    free(saver_win);
+    saver_win = (char*)calloc(15000, sizeof(char));
+    strcpy(saver_win, buffer);
+    char* space(char* text, long int location);
+    char* nospace(char* text, long int location);
+    char* newline1(char* text, long int location);
+    char* emptybrace(char* text, long int left, long int right);
+    char* indentation(char*text, long int location, int indent);
+    char c, *address = (char*)calloc(300, sizeof(char));
+    long int ct = 0, i = 0;
+
+    /*fseek(fp, 0L, SEEK_END);
+    long int end_ = ftell(fp), ct_ = 0;
+    char* current = (char*)calloc(end_, sizeof(char));
+    fseek(fp, 0L, SEEK_SET);
+    while(c != EOF){
+        c = fgetc(fp);
+        current[ct_] = c;
+        ct_++;
+    }
+    current[ct_-1] = '\0';
+    previous_saver(address, current);
+    fseek(fp, 0L, SEEK_SET);*/
+    //printf("%s\n\n", buffer);
+    int rbracect = 0, rbracedone = 0;
+    while(1){
+        //printf("%ld - %c\n", i, buffer[i]);
+        if(buffer[i] == '{'){
+            rbracect++;
+            if(rbracect > rbracedone){
+                buffer = space(buffer, i);
+                i = 0;
+                rbracect = 0;
+                rbracedone++;
+                continue;
+            }
+        }
+        if(buffer[i] == '\0')
+            break;
+        i++;
+    }
+    i = 0;
+    rbracect = 0, rbracedone = 0;
+
+    int lbracect = 0, lbracedone = 0;
+    while(1){
+        //printf("%ld - %c\n", i, buffer[i]);
+        if(buffer[i] == '}'){
+            lbracect++;
+            if(lbracect > lbracedone){
+                buffer = nospace(buffer, i);
+                i = 0;
+                lbracect = 0;
+                lbracedone++;
+                continue;
+            }
+        }
+        if(buffer[i] == '\0')
+            break;
+        i++;
+    }
+    i = 0;
+
+    while(1){
+        //printf("%ld - %c\n", i, buffer[i]);
+        if( (buffer[i] == '{') || (buffer[i] == '}'))
+            buffer = newline1(buffer, i+1);
+        if(buffer[i] == '\0')
+            break;
+        i++;
+    }
+    i = 0;
+
+    while(1){
+        if(buffer[i]=='{'){
+            if((buffer[i+2]=='}'))
+                buffer = emptybrace(buffer, i, i+2);
+        }
+        if(buffer[i]=='\0')
+            break;
+        i++;
+    }
+    int indent = 0;
+    i = 0;
+    while(1){
+        if(buffer[i]=='{')
+            indent += 4;
+        if(buffer[i]=='}')
+            indent -= 4;
+        if(buffer[i]=='\n'){
+            if(buffer[i+1]=='}'){
+                buffer = indentation(buffer, i , indent-4);
+                i++;
+                continue;
+            }
+            buffer = indentation(buffer, i, indent);
+        }
+        if(buffer[i]=='\0')
+            break;
+        i++;
+    }
+    i = 0;
+    return buffer;
+}
+
+void create_win(char *address)
+{
+    char c;
+    char *s = (char*)malloc(200), *str = (char*)calloc(1000, sizeof(char));
+
+    /*scanf("%s", s);
+
+    if(strcmp(s, "--file")){
+        gets(s);
+        printf("Invalid Input\n");
+        return;
+    }
+    free(s);
+    long int i = 0;
+    scanf("%c", &c);
+    scanf("%c", &c);
+    if(c != '"'){
+        int f = 1;
+        str[0] = c;
+        scanf("%c", &c);
+        while( (c != '\n') && (c != ' ') ){
+            str[f] = c;
+            f++;
+            scanf("%c", &c);
+        }
+        str[f] = '\0';
+    }
+    else{
+        while(1){
+            scanf("%c", &str[i]);
+            if((str[i] == '"') && (str[i-1] != '\\'))
+                break;
+            i++;
+        }
+        str[i] = '\0';
+    }
+    strcpy(address, str);
+
+    //printf("\nYour chosen path: |%s|\n\n", str);*/
+
+    char* str_ = (char*)calloc(200, sizeof(char));
+
+    long int i = 0;
+
+    while(1){
+        if(address[i]=='/'){
+            //printf("%s\n", str_);
+            mkdir(str_, 0777);
+        }
+        str_[i] = address[i];
+        i++;
+        if(address[i]=='\0'){
+            str_[i] = '\0';
+            break;
+        }
+    }
+
+    FILE* fp = NULL;
+    fp = fopen(address, "r");
+    if(fp != NULL){
+        //printf("File already exist.\n");
+        //free(str); free(address); free(str_);
+        return;
+    }
+
+    fp = fopen(address, "w+");
+    if(fp==NULL){
+        //printf("Unable to create file.\n");
+        //free(str); free(address); free(str_);
+        return;
+    }
+
+    fclose(fp);
+    //free(str); free(address); free(str_);
+}
+
+void add_char(int y, int x, char c)
+{
+    int j = furthest_char(y);
+    int ch;
+    for(int i = j; i >= x; i--){
+        move(y, i);
+        ch = inch();
+        move(y, i+1);
+        printw("%c", (char)ch);
+    }
+    move(y,x);
+    printw("%c", c);
+}
+
+void copier(int y1, int x1, int y2, int x2, int mode)
+{
+    char* tmp = (char*)calloc(4000, sizeof(char));
+    int y = y1, x = x1;
+    long int i = 0;
+    char c;
+    move(y, x);
+    while(1){
+        move(y, x);
+        c = inch();
+        if(mode) delch();
+        if(y==y2 && x == x2){
+            tmp[i] = c;
+            tmp[i+1] = '\0';
+            break;
+        }
+        else if(c=='\n'){
+            tmp[i] = '\n';
+            i++; x = 6; y++;
+            continue;
+        }
+        else if(x==169){
+            tmp[i] = c;
+            x = 6; i++; y++;
+        }
+        else{
+            tmp[i] = c;
+            i++; x++;
+        }
+    }
+    free(saver);
+    saver = (char*)calloc(5000, sizeof(char));
+    strcpy(saver, tmp);
+}
+
+
+//////////////////////////////////////////////
+/// MODES
+
+char* insert_mode(char* buffer, char* address)
 {
     keypad(stdscr, TRUE);
-    printfile(buffer);
+    char *newbuf = (char*)calloc(30000, sizeof(char));
+    long int last_char = printfile(buffer), first_char = 0;
+    int real_line = 0;
     //move(49, 1);
     //printw("|%s|", buffer);
     print_border();
-    print_line_numbers();
-    print_file_layout("Modified", address, 0);
+    print_line_numbers(line_start);
+    print_file_layout("Insert", address, change_win);
     int y = 2, x = 6;
     int input, maxline = max_line(address);
+    noecho();
     //move(49, 1); printw("%d %d %d", furthest_char(1), furthest_char(2), furthest_char(3));
     //furthest_char((2)); furthest_char(3); furthest_char(4);
     while(1){
-        noecho();
+        //move(50,1);
+        //move(49, 1); printw("%4d", y);
         move(y, x);
         input = getch();
         if(input== KEY_UP){
@@ -170,10 +556,29 @@ void insert_mode(char* buffer, char* address)
                 x = furthest_char(y);
                 continue;
             }
+            else if(y==5){
+                if(real_line != 0){
+                    real_line--;
+                    newbuf = (char*)calloc(40000, sizeof(char));
+                    newbuf = move_up(buffer, &last_char, &first_char);
+                    //for(int i = 0; i < 10; i++) {move(49,i); printw("%c", newbuf[i]);}
+                    line_start--;
+                    clear();
+                    printfile(newbuf);
+                    print_file_layout("Insert", address, change_win);
+                    print_line_numbers(line_start);
+                    print_border();
+                    //free(newbuf);
+                    continue;
+                }
+            }
             y--;
         }
         else if(input==KEY_DOWN){
-            if(y==43) continue;
+            if(y==44){
+                beep();
+                continue;
+            }
             else if(y == maxline){
                 beep();
                 continue;
@@ -183,6 +588,20 @@ void insert_mode(char* buffer, char* address)
                 x = furthest_char(y);
                 continue;
             }
+            else if(y == 41){
+                if(real_line+y < max_line_win(buffer)-3){
+                    real_line++;
+                    newbuf = move_down(buffer, &last_char, &first_char);
+                    line_start++;
+                    clear();
+                    printfile(newbuf);
+                    print_file_layout("Insert", address, change_win);
+                    print_line_numbers(line_start);
+                    print_border();
+                    //free(newbuf);
+                    continue;
+                }
+            }
             y++;
         }
         else if(input==KEY_RIGHT){
@@ -191,10 +610,18 @@ void insert_mode(char* buffer, char* address)
                     y++;
                     x = 6;
                 }
+                else if(y==44){
+                    beep();
+                    continue;
+                }
                 continue;
             }
             else if(x==furthest_char(y)){
-                if(y!=maxline){
+                if(y==44){
+                    beep();
+                    continue;
+                }
+                else if(y!=maxline){
                     y++;
                     x = 6;
                     continue;
@@ -221,18 +648,323 @@ void insert_mode(char* buffer, char* address)
             x--;
         }
         else if(input==265){
-            return;
+            buffer = read_win(buffer, first_char, last_char);
+            return buffer;
         }
         else{
-            echo();
+            change_win = 1;
+            add_char(y, x, (char)input);
             x++;
-            insch(input);
-            print_border();
         }
-
     }
 }
 
+char* normal_mode(char* buffer, char* address)
+{
+    keypad(stdscr, TRUE);
+    char *newbuf = (char*)calloc(30000, sizeof(char));
+    long int last_char = printfile(buffer), first_char = 0;
+    int real_line = 0;
+    //move(49, 1);
+    //printw("|%s|", buffer);
+    print_border();
+    print_line_numbers(line_start);
+    print_file_layout("Normal", address, change_win);
+    int y = 2, x = 6;
+    int input, maxline = max_line(address);
+    //move(49, 1); printw("%d %d %d", furthest_char(1), furthest_char(2), furthest_char(3));
+    //furthest_char((2)); furthest_char(3); furthest_char(4);
+    while(1){
+        noecho();
+        //move(50,1);
+        //move(49, 1); printw("%4d", y);
+        move(y, x);
+        input = getch();
+        if(input== KEY_UP){
+            if(y==2){
+                beep();
+                continue;
+            }
+            else if(x > furthest_char(y-1)){
+                y--;
+                x = furthest_char(y);
+                continue;
+            }
+            else if(y==5){
+                if(real_line != 0){
+                    real_line--;
+                    newbuf = (char*)calloc(40000, sizeof(char));
+                    newbuf = move_up(buffer, &last_char, &first_char);
+                    //for(int i = 0; i < 10; i++) {move(49,i); printw("%c", newbuf[i]);}
+                    line_start--;
+                    clear();
+                    printfile(newbuf);
+                    print_file_layout("Normal", address, change_win);
+                    print_line_numbers(line_start);
+                    print_border();
+                    //free(newbuf);
+                    continue;
+                }
+            }
+            y--;
+        }
+        else if(input==KEY_DOWN){
+            if(y==44){
+                beep();
+                continue;
+            }
+            else if(y == maxline){
+                beep();
+                continue;
+            }
+            else if(x > furthest_char(y+1)){
+                y++;
+                x = furthest_char(y);
+                continue;
+            }
+            else if(y == 41){
+                if(real_line+y < max_line_win(buffer)-3){
+                    real_line++;
+                    newbuf = move_down(buffer, &last_char, &first_char);
+                    line_start++;
+                    clear();
+                    printfile(newbuf);
+                    print_file_layout("Normal", address, change_win);
+                    print_line_numbers(line_start);
+                    print_border();
+                    //free(newbuf);
+                    continue;
+                }
+            }
+            y++;
+        }
+        else if(input==KEY_RIGHT){
+            if(x==169){
+                if(y!=maxline){
+                    y++;
+                    x = 6;
+                }
+                else if(y==44){
+                    beep();
+                    continue;
+                }
+                continue;
+            }
+            else if(x==furthest_char(y)){
+                if(y==44){
+                    beep();
+                    continue;
+                }
+                else if(y!=maxline){
+                    y++;
+                    x = 6;
+                    continue;
+                }
+                else{
+                    beep();
+                    continue;
+                }
+            }
+            x++;
+        }
+        else if(input==KEY_LEFT){
+            if(x==6){
+                if(y==2){
+                    beep();
+                    continue;
+                }
+                else{
+                    y--;
+                    x = furthest_char(y);
+                    continue;
+                }
+            }
+            x--;
+        }
+        else if(input==265){
+            return buffer;
+        }
+        else if(input==(int)'a'){
+            change_win = 1;
+            buffer = indent_win(buffer);
+            clear();
+            last_char = printfile(buffer);
+            print_file_layout("Normal", address, change_win);
+            print_line_numbers(line_start);
+            print_border();
+            real_line = 0;
+            y = 2; x = 6;
+            maxline = max_line_win(buffer);
+            first_char = 0;
+        }
+        else if(input == (int)'u'){
+            change_win = 1;
+            char *tmp = (char*)calloc(15000, sizeof(char));
+            strcpy(tmp, buffer);
+            strcpy(buffer, saver_win);
+            free(saver_win);
+            saver_win = (char*)calloc(15000, sizeof(char));
+            strcpy(saver_win, tmp);
+            clear();
+            last_char = printfile(buffer);
+            print_file_layout("Normal", address, change_win);
+            print_line_numbers(line_start);
+            print_border();
+            real_line = 0;
+            y = 2; x = 6;
+            maxline = max_line_win(buffer);
+            first_char = 0;
+            free(tmp);
+        }
+    }
+}
+
+char* visual_mode(char*buffer, char *address)
+{
+    keypad(stdscr, TRUE);
+    char *newbuf = (char*)calloc(30000, sizeof(char));
+    long int last_char = printfile(buffer), first_char = 0;
+    int real_line = 0;
+    //move(49, 1);
+    //printw("|%s|", buffer);
+    print_border();
+    print_line_numbers(line_start);
+    print_file_layout("Visual", address, change_win);
+    int y = 2, x = 6;
+    int y1, x1, y2, x2;
+    int input, maxline = max_line(address);
+    //move(49, 1); printw("%d %d %d", furthest_char(1), furthest_char(2), furthest_char(3));
+    //furthest_char((2)); furthest_char(3); furthest_char(4);
+    while(1){
+        noecho();
+        //move(50,1);
+        //move(49, 1); printw("%4d", y);
+        move(y, x);
+        input = getch();
+        if(input== KEY_UP){
+            if(y==2){
+                beep();
+                continue;
+            }
+            else if(x > furthest_char(y-1)){
+                y--;
+                x = furthest_char(y);
+                continue;
+            }
+            else if(y==5){
+                if(real_line != 0){
+                    real_line--;
+                    newbuf = (char*)calloc(40000, sizeof(char));
+                    newbuf = move_up(buffer, &last_char, &first_char);
+                    //for(int i = 0; i < 10; i++) {move(49,i); printw("%c", newbuf[i]);}
+                    line_start--;
+                    clear();
+                    printfile(newbuf);
+                    print_file_layout("Visual", address, change_win);
+                    print_line_numbers(line_start);
+                    print_border();
+                    //free(newbuf);
+                    continue;
+                }
+            }
+            y--;
+        }
+        else if(input==KEY_DOWN){
+            if(y==44){
+                beep();
+                continue;
+            }
+            else if(y == maxline){
+                beep();
+                continue;
+            }
+            else if(x > furthest_char(y+1)){
+                y++;
+                x = furthest_char(y);
+                continue;
+            }
+            else if(y == 41){
+                if(real_line+y < max_line_win(buffer)-3){
+                    real_line++;
+                    newbuf = move_down(buffer, &last_char, &first_char);
+                    line_start++;
+                    clear();
+                    printfile(newbuf);
+                    print_file_layout("Visual", address, change_win);
+                    print_line_numbers(line_start);
+                    print_border();
+                    //free(newbuf);
+                    continue;
+                }
+            }
+            y++;
+        }
+        else if(input==KEY_RIGHT){
+            if(x==169){
+                if(y!=maxline){
+                    y++;
+                    x = 6;
+                }
+                else if(y==44){
+                    beep();
+                    continue;
+                }
+                continue;
+            }
+            else if(x==furthest_char(y)){
+                if(y==44){
+                    beep();
+                    continue;
+                }
+                else if(y!=maxline){
+                    y++;
+                    x = 6;
+                    continue;
+                }
+                else{
+                    beep();
+                    continue;
+                }
+            }
+            x++;
+        }
+        else if(input==KEY_LEFT){
+            if(x==6){
+                if(y==2){
+                    beep();
+                    continue;
+                }
+                else{
+                    y--;
+                    x = furthest_char(y);
+                    continue;
+                }
+            }
+            x--;
+        }
+        else if(input==265){
+            return buffer;
+        }
+        else if(input==(int)'a'){
+            y1 = y;
+            x1 = x;
+        }
+        else if(input == (int)'b'){
+            y2 = y;
+            x2 = x;
+        }
+        else if(input == (int)'c'){
+            copier(y1, x1, y2, x2, 0);
+        }
+        else if(input == (int)'d'){
+            change_win = 1;
+            copier(y1, x1, y2, x2, 1);
+        }
+    }
+}
+
+///
+///////////////////////////////////////////
 
 void openfile(char* address)
 {
@@ -240,9 +972,8 @@ void openfile(char* address)
     initscr();
     refresh();
     start_color();
-    //bkgdset(COLOR_PAIR(6));
-    //print_border();
-  //  print_line_numbers();
+    line_start = 1;
+    change_win = 0;
     init_pair(10, COLOR_WHITE, COLOR_BLACK);
     FILE *fp = fopen(address, "rb+");
     if(fp == NULL){
@@ -258,26 +989,109 @@ void openfile(char* address)
         i++;
     }
     buffer[i] = '\0';
-    printfile(buffer);
     //move(49, 1);
     //printw("|%s|", buffer);
-    print_border();
-    print_line_numbers();
-    print_file_layout("Normal", address, 1);
-    move(46, 6);
+    fclose(fp);
     int input;
-    char command[20];
+    noecho();
+    char *command = (char*)calloc(300, sizeof(char));
+    char location[30], mode[200] = "No Modes";
     while(1){
+        clear();
+        printfile(buffer);
+        free_cmdb();
+        print_border();
+        print_line_numbers(line_start);
+        print_file_layout(mode, address, change_win);
+        move(46, 6);
         input = getch();
         if(input == (int) ':'){
-            getstr(command);
-            if(!strcmp(command, "q")){
+            echo();
+            printw(":");
+            input = getch();
+            //c_ = getch();
+            if(input == (int)'q'){
+                change_win = 0;
                 endwin();
                 return;
             }
+            else if(input == (int)'o'){
+                getch();
+                getstr(location);
+                change_win = 0;
+                /*FILE *fptr = fopen(address, "w+");
+                long int j = 0;
+                while(buffer[j] != '\0'){
+                    fputc(buffer[j], fptr);
+                    i++;
+                }
+                fclose(fptr);*/
+                FILE *fpt = fopen(location, "rb");
+                strcpy(address, location);
+                char c = fgetc(fpt);
+                long int i = 0;
+                while(c != EOF){
+                    buffer[i] = c;
+                    c = fgetc(fp);
+                    i++;
+                }
+                buffer[i] = '\0';
+                fclose(fpt);
+            }
+            else if(input == (int)'x'){
+                fp = fopen(address, "w+");
+                long int i = 0;
+                while(buffer[i]!='\0'){
+                    fputc(buffer[i], fp);
+                    i++;
+                }
+                fclose(fp);
+                free(buffer);
+                change_win = 0;
+                endwin();
+                return;
+            }
+            else if( input ==(int)'w'){
+                change_win = 0;
+                fp = fopen(address, "w+");
+                long int i = 0;
+                while(buffer[i]!='\0'){
+                    fputc(buffer[i], fp);
+                    i++;
+                }
+                fclose(fp);
+            }
+            else if(input == 's'){
+                getch();
+                change_win = 0;
+                getstr(location);
+                create_win(location);
+                fp = fopen(location, "w+");
+                long int i = 0;
+                while(buffer[i]!='\0'){
+                    fputc(buffer[i], fp);
+                    i++;
+                }
+                fclose(fp);
+            }
+            else if(input == 'c'){
+                getch();
+                getstr(location);
+                create_win(location);
+            }
         }
-        else if(input == (int) 'i')
-            insert_mode(buffer, address);
+        else if(input == (int) 'i'){
+            buffer = insert_mode(buffer, address);
+            line_start = 1;
+        }
+        else if(input == (int) 'n'){
+            buffer = normal_mode(buffer, address);
+            line_start = 1;
+        }
+        else if(input == (int) 'v'){
+            buffer = visual_mode(buffer, address);
+            line_start = 1;
+            }
     }
 }
 
@@ -366,14 +1180,15 @@ void create()
     }
     strcpy(address, str);
 
-    //printf("\nYour chosen path: %s\n\n", str);
+    //printf("\nYour chosen path: |%s|\n\n", str);
 
     char* str_ = (char*)calloc(200, sizeof(char));
 
     i = 0;
 
     while(1){
-        if(address[i]=='\\'){
+        if(address[i]=='/'){
+            //printf("%s\n", str_);
             mkdir(str_, 0777);
         }
         str_[i] = address[i];
